@@ -53,7 +53,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name: "byte-array MESSAGE is decoded and sanitized",
-			line: `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1", "MESSAGE":"[104,105,32,255]"}`,
+			line: `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1", "MESSAGE":[104,105,32,255]}`,
 			want: JournalEntry{
 				Cursor: "s=abc;i=1f4",
 				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
@@ -62,6 +62,11 @@ func TestParse(t *testing.T) {
 				SeqNumId:           "seq-1",
 				Message: new("hi \uFFFD"), // 104,105,32 = "hi", 255 = invalid UTF-8
 			},
+		},
+		{
+			name: "missing cursor is a parse failure",
+			line: `{"__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000"}`,
+			wantErr: true,
 		},
 	}
 
