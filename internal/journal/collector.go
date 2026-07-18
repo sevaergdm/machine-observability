@@ -8,9 +8,11 @@ import (
 	"os/exec"
 
 	"machine-observability/internal/collector"
+	"machine-observability/internal/config"
 )
 
 type Collector struct {
+	Config config.CollectorConfig
 }
 
 func (c *Collector) Name() string { return "journal" }
