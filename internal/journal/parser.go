@@ -8,28 +8,28 @@ import (
 	"time"
 )
 
-func Parse(raw map[string]any) (JournalEntry, error) {
+func Parse(raw map[string]any) (Entry, error) {
 	realtimeTimestamp, err := parseTimestamp(raw["__REALTIME_TIMESTAMP"])
 	if err != nil {
-		return JournalEntry{}, err
+		return Entry{}, err
 	}
 
 	monotonicTimestamp, err := parseTimestamp(raw["__MONOTONIC_TIMESTAMP"])
 	if err != nil {
-		return JournalEntry{}, err
+		return Entry{}, err
 	}
 
 	seqNum := getInt(raw, "__SEQNUM")
 	if seqNum == nil {
-		return JournalEntry{}, fmt.Errorf("missing or invalid __SEQNUM")
+		return Entry{}, fmt.Errorf("missing or invalid __SEQNUM")
 	}
 
 	seqNumId := getString(raw, "__SEQNUM_ID")
 	if seqNumId == nil {
-		return JournalEntry{}, fmt.Errorf("missing or invalid __SEQNUM_ID")
+		return Entry{}, fmt.Errorf("missing or invalid __SEQNUM_ID")
 	}
 
-	event := JournalEntry{
+	event := Entry{
 		RealtimeTimestamp:  realtimeTimestamp,
 		MonotonicTimestamp: monotonicTimestamp,
 		Message:            getMessage(raw),

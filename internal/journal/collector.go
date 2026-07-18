@@ -6,12 +6,16 @@ import (
 	"errors"
 	"io"
 	"os/exec"
+
+	"machine-observability/internal/collector"
 )
 
 type Collector struct {
 }
 
-func (c Collector) Run(ctx context.Context, events chan<- JournalEntry) error {
+func (c *Collector) Name() string { return "journal" }
+
+func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) error {
 	cmd := exec.CommandContext(ctx, "journalctl", "-f", "-o", "json", "--no-pager")
 
 	stdout, err := cmd.StdoutPipe()

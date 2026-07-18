@@ -22,13 +22,13 @@ func TestParse(t *testing.T) {
 	tests := []struct {
 		name    string
 		line    string
-		want    JournalEntry
+		want    Entry
 		wantErr bool
 	}{
 		{
 			name: "normal service entry",
 			line: `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1","PRIORITY":"6","SYSLOG_FACILITY":"3","SYSLOG_IDENTIFIER":"sshd","MESSAGE":"Accepted publickey for michael"}`,
-			want: JournalEntry{
+			want: Entry{
 				Cursor:             "s=abc;i=1f4",
 				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
 				MonotonicTimestamp: time.UnixMicro(5000000).UTC(),
@@ -43,7 +43,7 @@ func TestParse(t *testing.T) {
 		{
 			name: "minimal entry has nulls, not errors",
 			line: `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1"}`,
-			want: JournalEntry{
+			want: Entry{
 				Cursor:             "s=abc;i=1f4",
 				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
 				MonotonicTimestamp: time.UnixMicro(5000000).UTC(),
@@ -54,7 +54,7 @@ func TestParse(t *testing.T) {
 		{
 			name: "byte-array MESSAGE is decoded and sanitized",
 			line: `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1", "MESSAGE":[104,105,32,255]}`,
-			want: JournalEntry{
+			want: Entry{
 				Cursor: "s=abc;i=1f4",
 				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
 				MonotonicTimestamp: time.UnixMicro(5000000).UTC(),

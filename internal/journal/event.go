@@ -2,7 +2,7 @@ package journal
 
 import "time"
 
-type JournalEntry struct {
+type Entry struct {
 	Cursor             string
 	MonotonicTimestamp time.Time
 	RealtimeTimestamp  time.Time
@@ -16,3 +16,7 @@ type JournalEntry struct {
 
 	Fields             map[string]string
 }
+
+func (e Entry) Source() string { return "journal" }
+
+func (e Entry) Timestamp() time.Time { return e.RealtimeTimestamp }

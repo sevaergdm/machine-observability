@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"machine-observability/internal/journal"
+	"machine-observability/internal/collector"
 )
 
 func main() {
-	events := make(chan journal.JournalEntry)
+	events := make(chan collector.Event)
 
 	collector := journal.Collector{}
 
