@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,32 +19,27 @@ func Parse(raw map[string]any) (JournalEntry, error) {
 		return JournalEntry{}, err
 	}
 
-	intPriority, err := strconv.Atoi(raw["PRIORITY"].(string))
-	if err != nil {
-		return JournalEntry{}, err
+	seqNum := getInt(raw, "__SEQNUM")
+	if seqNum == nil {
+		return JournalEntry{}, fmt.Errorf("missing or invalid __SEQNUM")
 	}
 
-	intSeqNum, err := strconv.Atoi(raw["__SEQNUM"].(string))
-	if err != nil {
-		return JournalEntry{}, err
-	}
-
-	intSyslogFacility, err := strconv.Atoi(raw["SYSLOG_FACILITY"].(string))
-	if err != nil {
-		return JournalEntry{}, err
+	seqNumId := getString(raw, "__SEQNUM_ID")
+	if seqNumId == nil {
+		return JournalEntry{}, fmt.Errorf("missing or invalid __SEQNUM_ID")
 	}
 
 	event := JournalEntry{
-		RealtimeTimestamp: realtimeTimestamp,
+		RealtimeTimestamp:  realtimeTimestamp,
 		MonotonicTimestamp: monotonicTimestamp,
-		Message: raw["MESSAGE"].(string),
-		Priority: intPriority,
-		Cursor: raw["__CURSOR"].(string),
-		SeqNum: intSeqNum,
-		SeqNumId: raw["__SEQNUM_ID"].(string),
-		SyslogFacility: intSyslogFacility,
-		SyslogIdentifier: raw["SYSLOG_IDENTIFIER"].(string),
-		Fields:    map[string]string{},
+		Message:            getMessage(raw),
+		Priority:           getInt(raw, "PRIORITY"),
+		Cursor:             raw["__CURSOR"].(string),
+		SeqNum:             *seqNum,
+		SeqNumId:           *seqNumId,
+		SyslogFacility:     getInt(raw, "SYSLOG_FACILITY"),
+		SyslogIdentifier:   getString(raw, "SYSLOG_IDENTIFIER"),
+		Fields:             map[string]string{},
 	}
 
 	for key, value := range raw {
@@ -51,6 +47,51 @@ func Parse(raw map[string]any) (JournalEntry, error) {
 	}
 
 	return event, nil
+}
+
+func getMessage(raw map[string]any) *string {
+	if msgString := getString(raw, "MESSAGE"); msgString != nil {
+		return msgString
+	}
+
+	msgArr, ok := raw["MESSAGE"].([]any)
+	if !ok {
+		return nil
+	}
+
+	b := make([]byte, 0, len(msgArr))
+	for _, v := range msgArr {
+		f, ok := v.(float64)
+		if !ok {
+			return nil
+		}
+		b = append(b, byte(f))
+	}
+
+	msgString := strings.ToValidUTF8(string(b), "\uFFFD")
+	return &msgString
+}
+
+func getString(raw map[string]any, key string) *string {
+	value, ok := raw[key].(string)
+	if !ok {
+		return nil
+	}
+	return &value
+}
+
+func getInt(raw map[string]any, key string) *int {
+	value, ok := raw[key].(string)
+	if !ok {
+		return nil
+	}
+
+	valueInt, err := strconv.Atoi(value)
+	if err != nil {
+		return nil
+	}
+
+	return &valueInt
 }
 
 func parseTimestamp(v any) (time.Time, error) {

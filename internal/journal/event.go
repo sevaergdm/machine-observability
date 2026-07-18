@@ -6,11 +6,13 @@ type JournalEntry struct {
 	Cursor             string
 	MonotonicTimestamp time.Time
 	RealtimeTimestamp  time.Time
-	Message            string
-	Priority           int
 	SeqNum             int
 	SeqNumId           string
-	SyslogFacility     int
-	SyslogIdentifier   string
+
+	Message            *string
+	Priority           *int
+	SyslogFacility     *int
+	SyslogIdentifier   *string
+
 	Fields             map[string]string
 }
