@@ -1,0 +1,6 @@
+data_dir  = "/var/lib/machine-observability/data"
+state_dir = "/var/lib/machine-observability/state"
+
+[collectors.journal]
+enabled = true
+
