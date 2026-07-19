@@ -90,7 +90,7 @@ func TestLoadErrors(t *testing.T) {
   		state_dir = "/tmp/state"
   		[collectors.journal]
   		enabled = true
-  		interval = 10s
+  		interval = "10s"
   		`,
   		wantErr: "streaming",
   	},
@@ -130,11 +130,21 @@ func TestLoadErrors(t *testing.T) {
   		state_dir = "/tmp/state"
   		[collectors.cpu]
   		enabled = true
-			interval = -5s
+			interval = "-5s"
   		`,
 			wantErr: "interval durations must be positive",
 		},
-			
+		{
+			name: "polling collector has invalid interval",
+  		content: `
+  		data_dir = "/tmp/data"
+  		state_dir = "/tmp/state"
+  		[collectors.cpu]
+  		enabled = true
+			interval = "10 seconds"
+  		`,
+			wantErr: "unknown unit",
+		},
 	}
 
 	for _, tt := range tests {
