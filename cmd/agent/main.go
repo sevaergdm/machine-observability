@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"log/slog"
 	"machine-observability/internal/collector"
 	"machine-observability/internal/config"
@@ -32,7 +31,13 @@ var registry = map[string]registration{
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-	configPath := flag.String("config", "./config.toml", "path to the config.toml")
+	configPath := flag.String("config", "", "path to the config.toml")
+	flag.Parse()
+	if *configPath == "" {
+		fmt.Fprintf(os.Stderr, "error: no config file specified\n")
+		flag.Usage()
+		os.Exit(2)
+	}
 
 	knownNames := make(map[string]config.Kind)
 	for name, reg := range registry {
@@ -41,7 +46,20 @@ func main() {
 
 	cfg, err := config.Load(*configPath, knownNames)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("failed to load config", "error", err)
+		os.Exit(1)
+	}
+
+	err = os.MkdirAll(cfg.DataDir, 0750)
+	if err != nil {
+		logger.Error("failed to create data directory", "error", err)
+		os.Exit(1)
+	}
+
+	err = os.MkdirAll(cfg.StateDir, 0750)
+	if err != nil {
+		logger.Error("failed to create state directory", "error", err)
+		os.Exit(1)
 	}
 
 	var active []collector.Collector
@@ -64,7 +82,7 @@ func main() {
 
 	go func() {
 		if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
-			logger.Error("collector failed with error: ", "error", err)
+			logger.Error("collector failed with error", "error", err)
 		}
 		close(events)
 	}()

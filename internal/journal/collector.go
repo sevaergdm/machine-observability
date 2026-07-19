@@ -47,5 +47,9 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 		events <- event
 	}
 
-	return cmd.Wait()
+	err = cmd.Wait()
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return err
 }

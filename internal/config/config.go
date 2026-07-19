@@ -50,7 +50,10 @@ func Validate(cfg Config, validNames map[string]Kind) error {
 
 		switch kind {
 		case Polling:
-			if value.Interval.Duration <= 0 {
+			if value.Interval.Duration == 0 {
+				return fmt.Errorf("polling sources must have a positive interval set")
+			}
+			if value.Interval.Duration < 0 {
 				return fmt.Errorf("interval durations must be positive, got: %v", value.Interval)
 			}
 		case Streaming:
