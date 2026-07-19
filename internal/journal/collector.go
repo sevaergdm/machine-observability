@@ -28,15 +28,14 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 	}
 
 	decoder := json.NewDecoder(stdout)
+	var decodeErr error
 	for {
 		var raw map[string]any
-
-		err := decoder.Decode(&raw)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
+		if err := decoder.Decode(&raw); err != nil {
+			if !errors.Is(err, io.EOF) {
+				decodeErr = err
 			}
-			return err
+			break
 		}
 
 		event, err := Parse(raw)
@@ -47,9 +46,13 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 		events <- event
 	}
 
-	err = cmd.Wait()
+	waitErr := cmd.Wait()
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
-	return err
+
+	if decodeErr != nil {
+		return decodeErr
+	}
+	return waitErr
 }
