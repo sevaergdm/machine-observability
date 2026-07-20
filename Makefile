@@ -7,20 +7,25 @@ GOBIN ?= $(GOPATH)/bin
 GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
 
 # Commands
+.PHONY: build
 build:
-	go build -o bin/agent ./cmd/agent
+	$(GO) build -o bin/agent ./cmd/agent
 
+.PHONY: test
 test:
-	go test ./...
+	$(GO) test ./...
 
+.PHONY: vet
 vet:
-	go vet ./...
+	$(GO) vet ./...
 
+.PHONY: fmt-check
 fmt-check:
 	@out=$$(gofmt -l .); \
 	if [ -n "$$out" ]; then \
 		echo "unformatted files:"; echo "$$out"; exit 1; \
 	fi
 
+.PHONY: lint
 lint:
 	@$(GOLANGCI_LINT) run --fix

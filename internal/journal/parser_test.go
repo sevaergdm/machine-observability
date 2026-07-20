@@ -65,7 +65,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name:    "missing cursor is a parse failure",
-			line:    `{"__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000"}`,
+			line:    `{"__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1"}`,
 			wantErr: true,
 		},
 	}

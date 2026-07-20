@@ -29,12 +29,17 @@ func Parse(raw map[string]any) (Entry, error) {
 		return Entry{}, fmt.Errorf("missing or invalid __SEQNUM_ID")
 	}
 
+	cursor := getString(raw, "__CURSOR")
+	if cursor == nil {
+		return Entry{}, fmt.Errorf("missing or invalid __CURSOR")
+	}
+
 	event := Entry{
 		RealtimeTimestamp:  realtimeTimestamp,
 		MonotonicTimestamp: monotonicTimestamp,
 		Message:            getMessage(raw),
 		Priority:           getInt(raw, "PRIORITY"),
-		Cursor:             raw["__CURSOR"].(string),
+		Cursor:             *cursor,
 		SeqNum:             *seqNum,
 		SeqNumId:           *seqNumId,
 		SyslogFacility:     getInt(raw, "SYSLOG_FACILITY"),
