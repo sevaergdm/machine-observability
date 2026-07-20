@@ -34,7 +34,7 @@ enabled = true
 interval = "10s"
 `
 
-func TestLoadValid (t *testing.T) {
+func TestLoadValid(t *testing.T) {
 	cfg, err := Load(writeConfig(t, validConfig), testNames)
 	if err != nil {
 		t.Fatalf("unexpected error: %q", err)
@@ -83,17 +83,17 @@ func TestLoadErrors(t *testing.T) {
 			`,
 			wantErr: "unknown keys",
 		},
-  	{
-  		name: "interval on streaming collector",
-  		content: `
+		{
+			name: "interval on streaming collector",
+			content: `
   		data_dir = "/tmp/data"
   		state_dir = "/tmp/state"
   		[collectors.journal]
   		enabled = true
   		interval = "10s"
   		`,
-  		wantErr: "streaming",
-  	},
+			wantErr: "streaming",
+		},
 		{
 			name: "invalid toml syntax",
 			content: `
@@ -115,7 +115,7 @@ func TestLoadErrors(t *testing.T) {
 		},
 		{
 			name: "polling collector missing interval",
-  		content: `
+			content: `
   		data_dir = "/tmp/data"
   		state_dir = "/tmp/state"
   		[collectors.cpu]
@@ -125,7 +125,7 @@ func TestLoadErrors(t *testing.T) {
 		},
 		{
 			name: "polling collector missing interval",
-  		content: `
+			content: `
   		data_dir = "/tmp/data"
   		state_dir = "/tmp/state"
   		[collectors.cpu]
@@ -136,7 +136,7 @@ func TestLoadErrors(t *testing.T) {
 		},
 		{
 			name: "polling collector has invalid interval",
-  		content: `
+			content: `
   		data_dir = "/tmp/data"
   		state_dir = "/tmp/state"
   		[collectors.cpu]

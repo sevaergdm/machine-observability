@@ -9,12 +9,12 @@ type Entry struct {
 	SeqNum             int
 	SeqNumId           string
 
-	Message            *string
-	Priority           *int
-	SyslogFacility     *int
-	SyslogIdentifier   *string
+	Message          *string
+	Priority         *int
+	SyslogFacility   *int
+	SyslogIdentifier *string
 
-	Fields             map[string]string
+	Fields map[string]string
 }
 
 func (e Entry) Source() string { return "journal" }
