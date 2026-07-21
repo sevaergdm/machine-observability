@@ -2,9 +2,10 @@ package journal
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 //func ptr[T any](v T) *T { return new(v) }
@@ -84,12 +85,10 @@ func TestParse(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			got.Fields = "{}"
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Parse mismatch\n got: %+v\nwant: %+v", got, tt.want)
-				if got.Message != nil && tt.want.Message != nil {
-					t.Errorf("message: got %q, want %q", *got.Message, *tt.want.Message)
-				}
+			got.Fields = ""
+			diff := cmp.Diff(got, tt.want)
+			if diff != "" {
+				t.Errorf("Parse mismatch: %v", diff)
 			}
 		})
 	}
