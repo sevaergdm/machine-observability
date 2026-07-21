@@ -86,10 +86,48 @@ func TestParse(t *testing.T) {
 			}
 
 			got.Fields = ""
-			diff := cmp.Diff(got, tt.want)
+			diff := cmp.Diff(tt.want, got)
 			if diff != "" {
 				t.Errorf("Parse mismatch: %v", diff)
 			}
 		})
+	}
+}
+
+func TestParseFields(t *testing.T) {
+	line := `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1", "MESSAGE":"hello","_EXE":"/usr/bin/sshd","_CMDLINE":"sshd: michael [priv]"}`
+
+	got, err := Parse(decode(t, line))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+
+	var fields map[string]any
+	if err := json.Unmarshal([]byte(got.Fields), &fields); err != nil {
+		t.Fatalf("fields is not valid json: %v", err)
+	}
+
+	if exe, _ := fields["_EXE"].(string); exe != "/usr/bin/sshd" {
+		t.Errorf("_EXE = %q, want: %q", exe, "/usr/bin/sshd")
+	}
+
+	for _, key := range []string{"MESSAGE", "__CURSOR", "PRIORITY", "_PID"} {
+		if _, present := fields[key]; present {
+			t.Errorf("promoted key %s should not be in fields", key)
+		}
+	}
+}
+
+func TestParseFieldsEmpty(t *testing.T) {
+	line := `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1", "MESSAGE":"hello","_PID":"1234"}`
+
+	got, err := Parse(decode(t, line))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if got.Fields != "{}" {
+		t.Errorf("expected empty object, but got: %q", got.Fields)
 	}
 }
