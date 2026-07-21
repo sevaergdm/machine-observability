@@ -29,3 +29,7 @@ fmt-check:
 .PHONY: lint
 lint:
 	@$(GOLANGCI_LINT) run --fix
+
+.PHONY: run
+run:
+	./bin/agent -config=config.toml

@@ -34,8 +34,8 @@ func TestParse(t *testing.T) {
 				MonotonicTimestamp: time.UnixMicro(5000000).UTC(),
 				SeqNum:             500,
 				SeqNumId:           "seq-1",
-				Priority:           new(6),
-				SyslogFacility:     new(3),
+				Priority:           new(int64(6)),
+				SyslogFacility:     new(int64(3)),
 				SyslogIdentifier:   new("sshd"),
 				Message:            new("Accepted publickey for michael"),
 			},
@@ -84,7 +84,7 @@ func TestParse(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			got.Fields = nil
+			got.Fields = "{}"
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Parse mismatch\n got: %+v\nwant: %+v", got, tt.want)
 				if got.Message != nil && tt.want.Message != nil {

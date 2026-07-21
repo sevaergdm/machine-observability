@@ -1,12 +1,31 @@
 package journal
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var promotedKeys = map[string]bool{
+	"__REALTIME_TIMESTAMP":  true,
+	"__MONOTONIC_TIMESTAMP": true,
+	"MESSAGE":               true,
+	"PRIORITY":              true,
+	"__CURSOR":              true,
+	"__SEQNUM":              true,
+	"__SEQNUM_ID":           true,
+	"SYSLOG_FACILITY":       true,
+	"SYSLOG_IDENTIFIER":     true,
+	"_SYSTEMD_UNIT":         true,
+	"_PID":                  true,
+	"_UID":                  true,
+	"_COMM":                 true,
+	"_BOOT_ID":              true,
+	"_TRANSPORT":            true,
+}
 
 func Parse(raw map[string]any) (Entry, error) {
 	realtimeTimestamp, err := parseTimestamp(raw["__REALTIME_TIMESTAMP"])
@@ -44,12 +63,29 @@ func Parse(raw map[string]any) (Entry, error) {
 		SeqNumId:           *seqNumId,
 		SyslogFacility:     getInt(raw, "SYSLOG_FACILITY"),
 		SyslogIdentifier:   getString(raw, "SYSLOG_IDENTIFIER"),
-		Fields:             map[string]string{},
+		SystemdUnit:        getString(raw, "_SYSTEMD_UNIT"),
+		Pid:                getInt(raw, "_PID"),
+		Uid:                getInt(raw, "_UID"),
+		Comm:               getString(raw, "_COMM"),
+		BootId:             getString(raw, "_BOOT_ID"),
+		Transport:          getString(raw, "_TRANSPORT"),
+		Fields:             "",
 	}
 
+	extra := make(map[string]any)
 	for key, value := range raw {
-		event.Fields[key] = fmt.Sprint(value)
+		if promotedKeys[key] {
+			continue
+		}
+		extra[key] = value
 	}
+
+	fieldsJSON, err := json.Marshal(extra)
+	if err != nil {
+		return Entry{}, fmt.Errorf("encoding extra fields: %w", err)
+	}
+
+	event.Fields = string(fieldsJSON)
 
 	return event, nil
 }
@@ -85,13 +121,13 @@ func getString(raw map[string]any, key string) *string {
 	return &value
 }
 
-func getInt(raw map[string]any, key string) *int {
+func getInt(raw map[string]any, key string) *int64 {
 	value, ok := raw[key].(string)
 	if !ok {
 		return nil
 	}
 
-	valueInt, err := strconv.Atoi(value)
+	valueInt, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return nil
 	}
