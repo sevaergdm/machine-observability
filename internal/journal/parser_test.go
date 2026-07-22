@@ -2,13 +2,15 @@ package journal
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
 )
-
-//func ptr[T any](v T) *T { return new(v) }
 
 func decode(t *testing.T, line string) map[string]any {
 	t.Helper()
@@ -19,7 +21,7 @@ func decode(t *testing.T, line string) map[string]any {
 	return raw
 }
 
-func TestParse(t *testing.T) {
+func TestParseSyntheticData(t *testing.T) {
 	tests := []struct {
 		name    string
 		line    string
@@ -102,7 +104,6 @@ func TestParseFields(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-
 	var fields map[string]any
 	if err := json.Unmarshal([]byte(got.Fields), &fields); err != nil {
 		t.Fatalf("fields is not valid json: %v", err)
@@ -129,5 +130,42 @@ func TestParseFieldsEmpty(t *testing.T) {
 
 	if got.Fields != "{}" {
 		t.Errorf("expected empty object, but got: %q", got.Fields)
+	}
+}
+
+func TestParseRealFixtures(t *testing.T) {
+	entries, err := os.ReadDir("testdata")
+	if err != nil {
+		t.Fatalf("reading testdata: %v", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		t.Run(entry.Name(), func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join("testdata", entry.Name()))
+			if err != nil {
+				t.Fatalf("reading fixture: %v", err)
+			}
+
+			got, err := Parse(decode(t, string(data)))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if got.Cursor == "" {
+				t.Error("cursor is empty")
+			}
+
+			if got.Message != nil && !utf8.ValidString(*got.Message) {
+				t.Error("message is not valid UTF-8")
+			}
+
+			var Fields map[string]any
+			if err := json.Unmarshal([]byte(got.Fields), &Fields); err != nil {
+				t.Errorf("fields is not valid JSON: %v", err)
+			}
+		})
 	}
 }
