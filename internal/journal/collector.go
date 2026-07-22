@@ -53,10 +53,6 @@ func (c *Collector) consumeStream(ctx context.Context, r io.Reader, events chan<
 }
 
 func (c *Collector) runOnce(ctx context.Context, events chan<- collector.Event) error {
-	if c.Logger == nil {
-		c.Logger = slog.New(slog.DiscardHandler)
-	}
-
 	cmd := exec.CommandContext(ctx, "journalctl", "-f", "-o", "json", "--no-pager")
 
 	stdout, err := cmd.StdoutPipe()
@@ -82,6 +78,10 @@ func (c *Collector) runOnce(ctx context.Context, events chan<- collector.Event) 
 }
 
 func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) error {
+	if c.Logger == nil {
+		c.Logger = slog.New(slog.DiscardHandler)
+	}
+
 	delay := time.Second
 	for {
 		started := time.Now()

@@ -10,11 +10,10 @@ import (
 
 const validLine = `{"__CURSOR":"c1","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"1","__SEQNUM":"1","__SEQNUM_ID":"s1"}`
 const noCursorLine = `{"__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"1","__SEQNUM":"1","__SEQNUM_ID":"s1"}`
-const garbageLine = `{this is not json` 
-
+const garbageLine = `{this is not json`
 
 func TestConsumeStreamError(t *testing.T) {
-	input := strings.Join([]string{validLine, noCursorLine, garbageLine}, "\n")
+	input := strings.Join([]string{validLine, validLine, noCursorLine, validLine, garbageLine}, "\n")
 
 	c := &Collector{Logger: slog.New(slog.DiscardHandler)}
 
