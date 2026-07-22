@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,6 +26,7 @@ var testNames = map[string]Kind{
 const validConfig = `
 data_dir = "/tmp/data"
 state_dir = "/tmp/state"
+log_level = "debug"
 
 [collectors.journal]
 enabled = true
@@ -48,12 +50,34 @@ func TestLoadValid(t *testing.T) {
 		t.Errorf("DataDir = %q, want %q", cfg.StateDir, "/tmp/state")
 	}
 
+	if cfg.LogLevel != slog.LevelDebug {
+		t.Errorf("LogLevel = %q, want %q", cfg.LogLevel, slog.LevelDebug)
+	}
+
 	if !cfg.Collectors["journal"].Enabled {
 		t.Error("journal should be enabled")
 	}
 
 	if got := cfg.Collectors["cpu"].Interval.Duration; got != 10*time.Second {
 		t.Errorf("cput interval = %v, want 10s", got)
+	}
+}
+
+func TestLoadDefaultLogLevel(t *testing.T) {
+	content := `
+	data_dir = "/tmp/data"
+	state_dir = "/tmp/state"
+	[collectors.journal]
+	enabled = true
+	`
+
+	cfg, err := Load(writeConfig(t, content), testNames)
+	if err != nil {
+		t.Fatalf("unexpected error: %q", err)
+	}
+
+	if cfg.LogLevel != slog.LevelInfo {
+		t.Errorf("LogLevel = %q, want %q", cfg.LogLevel, slog.LevelInfo)
 	}
 }
 
@@ -72,6 +96,17 @@ func TestLoadErrors(t *testing.T) {
 			enabled = true
 			`,
 			wantErr: "unknown collector",
+		},
+		{
+			name: "wrong log level name",
+			content: `
+			data_dir = "/tmp/data"
+			state_dir = "/tmp/state"
+			log_level = "verbose"
+			[collectors.journal]
+			enabled = true
+			`,
+			wantErr: "level",
 		},
 		{
 			name: "misspelled field is rejected",
