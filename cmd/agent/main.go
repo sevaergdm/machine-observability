@@ -18,18 +18,19 @@ import (
 
 type registration struct {
 	kind  config.Kind
-	build func() collector.Collector
+	build func(logger *slog.Logger) collector.Collector
 }
 
 var registry = map[string]registration{
 	"journal": {
 		kind:  config.Streaming,
-		build: func() collector.Collector { return &journal.Collector{} },
+		build: func(logger *slog.Logger) collector.Collector { return &journal.Collector{Logger: logger} },
 	},
 }
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	var level slog.LevelVar
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: &level}))
 
 	configPath := flag.String("config", "", "path to the config.toml")
 	flag.Parse()
@@ -50,6 +51,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	level.Set(cfg.LogLevel)
+
 	err = os.MkdirAll(cfg.DataDir, 0750)
 	if err != nil {
 		logger.Error("failed to create data directory", "error", err)
@@ -67,7 +70,7 @@ func main() {
 		if !collectorConfig.Enabled {
 			continue
 		}
-		active = append(active, registry[name].build())
+		active = append(active, registry[name].build(logger.With("collector", name)))
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

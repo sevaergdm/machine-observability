@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -30,6 +31,7 @@ type CollectorConfig struct {
 type Config struct {
 	DataDir    string                     `toml:"data_dir"`
 	StateDir   string                     `toml:"state_dir"`
+	LogLevel   slog.Level                 `toml:"log_level"`
 	Collectors map[string]CollectorConfig `toml:"collectors"`
 }
 
