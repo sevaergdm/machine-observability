@@ -34,6 +34,7 @@ var minimalEntry = Entry{
 	RealtimeTimestamp: time.UnixMicro(1784719260315896),
 	SeqNum: 7385814,
 	SeqNumId: "065df9afa2ff4fe0a0b63d9c94a363ad",
+	Fields: `{}`,
 }
 
 var byteArrayEntry = Entry{
@@ -43,6 +44,7 @@ var byteArrayEntry = Entry{
 	SeqNum: 7385814,
 	SeqNumId: "065df9afa2ff4fe0a0b63d9c94a363ad",
 	Message: new("binary test \uFFFD\uFFFD end"),
+	Fields: `{}`,
 }
 
 
