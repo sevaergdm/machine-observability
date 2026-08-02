@@ -33,9 +33,9 @@ func Parse(raw map[string]any) (Entry, error) {
 		return Entry{}, err
 	}
 
-	monotonicTimestamp, err := parseTimestamp(raw["__MONOTONIC_TIMESTAMP"])
-	if err != nil {
-		return Entry{}, err
+	monotonicTimestamp := getInt(raw, "__MONOTONIC_TIMESTAMP")
+	if monotonicTimestamp == nil {
+		return Entry{}, fmt.Errorf("missing or invalid __MONOTONIC_TIMESTAMP")
 	}
 
 	seqNum := getInt(raw, "__SEQNUM")
@@ -55,7 +55,7 @@ func Parse(raw map[string]any) (Entry, error) {
 
 	event := Entry{
 		RealtimeTimestamp:  realtimeTimestamp,
-		MonotonicTimestamp: monotonicTimestamp,
+		MonotonicTimestamp: *monotonicTimestamp,
 		Message:            getMessage(raw),
 		Priority:           getInt(raw, "PRIORITY"),
 		Cursor:             *cursor,

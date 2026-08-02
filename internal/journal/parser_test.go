@@ -34,7 +34,7 @@ func TestParseSyntheticData(t *testing.T) {
 			want: Entry{
 				Cursor:             "s=abc;i=1f4",
 				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
-				MonotonicTimestamp: time.UnixMicro(5000000).UTC(),
+				MonotonicTimestamp: 5000000,
 				SeqNum:             500,
 				SeqNumId:           "seq-1",
 				Priority:           new(int64(6)),
@@ -49,7 +49,7 @@ func TestParseSyntheticData(t *testing.T) {
 			want: Entry{
 				Cursor:             "s=abc;i=1f4",
 				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
-				MonotonicTimestamp: time.UnixMicro(5000000).UTC(),
+				MonotonicTimestamp: 5000000,
 				SeqNum:             500,
 				SeqNumId:           "seq-1",
 			},
@@ -60,7 +60,7 @@ func TestParseSyntheticData(t *testing.T) {
 			want: Entry{
 				Cursor:             "s=abc;i=1f4",
 				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
-				MonotonicTimestamp: time.UnixMicro(5000000).UTC(),
+				MonotonicTimestamp: 5000000,
 				SeqNum:             500,
 				SeqNumId:           "seq-1",
 				Message:            new("hi \uFFFD"), // 104,105,32 = "hi", 255 = invalid UTF-8
