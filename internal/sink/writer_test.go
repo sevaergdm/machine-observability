@@ -2,6 +2,7 @@ package sink
 
 import (
 	"context"
+	"errors"
 	"machine-observability/internal/collector"
 	"testing"
 	"time"
@@ -21,7 +22,7 @@ func TestFlushOnRowCount(t *testing.T) {
 		return nil
 	}, 3, time.Hour, nil)
 
-	go w.Run(context.Background())
+	go w.Run(t.Context())
 
 	for i := range 3 {
 		events <- fakeEvent{n: i}
@@ -46,7 +47,7 @@ func TestFlushOnAge(t *testing.T) {
 		return nil
 	}, 1000, 50*time.Millisecond, nil)
 
-	go w.Run(context.Background())
+	go w.Run(t.Context())
 
 	events <- fakeEvent{n: 1}
 
@@ -60,17 +61,17 @@ func TestFlushOnAge(t *testing.T) {
 	}
 }
 
-func TestFlushOnCancel(t *testing.T) {
+func TestFlushOnClose(t *testing.T) {
 	events := make(chan collector.Event)
 	flushes := make(chan []collector.Event, 2)
 
 	w := NewWriter(events, func(rows []collector.Event) error {
 		flushes <- rows
 		return nil
-	}, 2, time.Second, nil)
+	}, 10, time.Second, nil)
 
 	done := make(chan error, 1)
-	go func() { done <- w.Run(context.Background()) }()
+	go func() { done <- w.Run(t.Context()) }()
 
 	events <- fakeEvent{n: 1}
 	events <- fakeEvent{n: 2}
@@ -84,6 +85,36 @@ func TestFlushOnCancel(t *testing.T) {
 	case batch := <-flushes:
 		if len(batch) != 2 {
 			t.Errorf("flushed %d rows, want 2", len(batch))
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("no flush happened")
+	}
+}
+
+func TestFlushOnCancel(t *testing.T) {
+	events := make(chan collector.Event)
+	flushes := make(chan []collector.Event, 1)
+
+	w := NewWriter(events, func(rows []collector.Event) error {
+		flushes <- rows
+		return nil
+	}, 10, time.Second, nil)
+
+	done := make(chan error, 1)
+	ctx, cancel := context.WithCancel(t.Context())
+	go func() { done <- w.Run(ctx) }()
+
+	events <- fakeEvent{n: 1}
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected %v, but got %v", context.Canceled, err)
+		}
+	case batch := <-flushes:
+		if len(batch) != 1 {
+			t.Errorf("flushed %d rows, want 1", len(batch))
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("no flush happened")
