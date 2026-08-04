@@ -15,7 +15,7 @@ const (
 type FlushFunc func(rows []collector.Event) error
 
 type Writer struct {
-	events     chan collector.Event
+	events     <-chan collector.Event
 	rowBuffer  []collector.Event
 	maxRows    int
 	maxAge     time.Duration
@@ -24,9 +24,12 @@ type Writer struct {
 	firstRowAt time.Time
 }
 
-func NewWriter(flush FlushFunc, maxRows int, maxAge time.Duration, logger *slog.Logger) *Writer {
+func NewWriter(events <-chan collector.Event, flush FlushFunc, maxRows int, maxAge time.Duration, logger *slog.Logger) *Writer {
 	return &Writer{
-		events:    make(chan collector.Event),
+		// events is deliberately unbuffered: collectors block while the sink is mid-flush
+		// Acceptable because flushes are fast local-disk writes and journald buffers upstream
+		// Revisit if flush latency ever grows
+		events:    events,
 		rowBuffer: make([]collector.Event, 0, maxRows),
 		maxRows:   maxRows,
 		maxAge:    maxAge,
@@ -35,17 +38,17 @@ func NewWriter(flush FlushFunc, maxRows int, maxAge time.Duration, logger *slog.
 	}
 }
 
-func (w *Writer) doFlush() error {
+func (w *Writer) doFlush() {
 	if len(w.rowBuffer) == 0 {
-		return nil
+		return
 	}
 
 	if err := w.flush(w.rowBuffer); err != nil {
-		return err
+		w.logger.Error("flush failed", "error", err)
+		return
 	}
 	w.rowBuffer = make([]collector.Event, 0, w.maxRows)
 	w.firstRowAt = time.Time{}
-	return nil
 }
 
 func (w *Writer) Run(ctx context.Context) error {
@@ -54,15 +57,14 @@ func (w *Writer) Run(ctx context.Context) error {
 	}
 
 	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case event, ok := <-w.events:
 			if !ok {
-				w.logger.Debug("nothing to flush", "rows", len(w.rowBuffer))
-				err := w.doFlush()
-				if err != nil {
-					w.logger.Error("flush failed", "error", err)
-				}
+				w.logger.Debug("final flush", "rows", len(w.rowBuffer))
+				w.doFlush()
+				return nil
 			}
 
 			if len(w.rowBuffer) == 0 {
@@ -71,24 +73,16 @@ func (w *Writer) Run(ctx context.Context) error {
 			w.rowBuffer = append(w.rowBuffer, event)
 			if len(w.rowBuffer) >= w.maxRows {
 				w.logger.Debug("flushing on row count", "rows", len(w.rowBuffer))
-				err := w.doFlush()
-				if err != nil {
-					w.logger.Error("flush failed", "error", err)
-				}
+				w.doFlush()
 			}
 		case <-ticker.C:
 			if len(w.rowBuffer) > 0 && time.Since(w.firstRowAt) >= w.maxAge {
 				w.logger.Debug("flushing on max age", "age", time.Since(w.firstRowAt).Seconds())
-				err := w.doFlush()
-				if err != nil {
-					w.logger.Error("flush failed", "error", err)
-				}
+				w.doFlush()
 			}
 		case <-ctx.Done():
-			err := w.doFlush()
-			if err != nil {
-				w.logger.Error("flush failed", "error", err)
-			}
+			w.doFlush()
+			return ctx.Err()
 		}
 	}
 }
