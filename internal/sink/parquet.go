@@ -73,6 +73,9 @@ func NewParquetFlush[T any](dataDir, source string) FlushFunc {
 }
 
 func CleanTmp(dataDir string, logger *slog.Logger) error {
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
+	}
 	return filepath.WalkDir(dataDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err

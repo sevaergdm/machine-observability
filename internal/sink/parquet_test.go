@@ -3,6 +3,7 @@ package sink
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,7 +35,7 @@ func TestCleanTmp(t *testing.T) {
 	}
 	final.Close()
 
-	err = CleanTmp(dir, nil)
+	err = CleanTmp(dir, slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
