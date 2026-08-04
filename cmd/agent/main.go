@@ -9,6 +9,7 @@ import (
 	"machine-observability/internal/collector"
 	"machine-observability/internal/config"
 	"machine-observability/internal/journal"
+	"machine-observability/internal/sink"
 	"os"
 	"os/signal"
 	"syscall"
@@ -93,7 +94,16 @@ func main() {
 		close(events)
 	}()
 
-	for event := range events {
-		fmt.Printf("%+v\n", event)
+	flushFn := func(rows []collector.Event) error {
+		logger.Info("flush (parquet not yet implemented)", "rows", len(rows))
+		return nil
+	}
+
+	w := sink.NewWriter(events, flushFn, sink.DefaultMaxRows, sink.DefaultMaxAge, logger.With("component", "sink"))
+	// Using background context here because reusing the existing ctx would mean that the writer would cancel while
+	// messages are still being pushed into events during shutdown. By using the separate context, we ensure that
+	// the writer stays until the channel closes
+	if err := w.Run(context.Background()); err != nil {
+		logger.Error("sink exited with error", "error", err)
 	}
 }

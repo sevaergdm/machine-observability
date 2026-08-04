@@ -22,7 +22,9 @@ func TestFlushOnRowCount(t *testing.T) {
 		return nil
 	}, 3, time.Hour, nil)
 
-	go w.Run(t.Context())
+	go func() {
+		_ = w.Run(t.Context())
+	}()
 
 	for i := range 3 {
 		events <- fakeEvent{n: i}
@@ -47,7 +49,9 @@ func TestFlushOnAge(t *testing.T) {
 		return nil
 	}, 1000, 50*time.Millisecond, nil)
 
-	go w.Run(t.Context())
+	go func() {
+		_ = w.Run(t.Context())
+	}()
 
 	events <- fakeEvent{n: 1}
 
@@ -112,11 +116,12 @@ func TestFlushOnCancel(t *testing.T) {
 		if !errors.Is(err, context.Canceled) {
 			t.Errorf("expected %v, but got %v", context.Canceled, err)
 		}
-	case batch := <-flushes:
-		if len(batch) != 1 {
-			t.Errorf("flushed %d rows, want 1", len(batch))
-		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("no flush happened")
+	}
+
+	batch := <-flushes
+	if len(batch) != 1 {
+		t.Errorf("flushed %d rows, want 1", len(batch))
 	}
 }
