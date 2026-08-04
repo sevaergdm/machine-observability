@@ -27,13 +27,13 @@ func TestCleanTmp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error creating temp file: %v", err)
 	}
-	tmp.Close()
+	_ = tmp.Close()
 
 	final, err := os.Create(finalPath)
 	if err != nil {
 		t.Fatalf("unexpected error creating final file: %v", err)
 	}
-	final.Close()
+	_ = final.Close()
 
 	err = CleanTmp(dir, slog.New(slog.DiscardHandler))
 	if err != nil {

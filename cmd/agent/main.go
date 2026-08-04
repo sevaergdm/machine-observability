@@ -54,6 +54,8 @@ func main() {
 
 	level.Set(cfg.LogLevel)
 
+	logger.Info("agent starting", "config", *configPath, "data_dir", cfg.DataDir, "state_dir", cfg.StateDir, "log_level", cfg.LogLevel)
+
 	err = os.MkdirAll(cfg.DataDir, 0750)
 	if err != nil {
 		logger.Error("failed to create data directory", "error", err)
@@ -72,11 +74,13 @@ func main() {
 	}
 
 	var active []collector.Collector
+	var names []string
 	for name, collectorConfig := range cfg.Collectors {
 		if !collectorConfig.Enabled {
 			continue
 		}
 		active = append(active, registry[name].build(logger.With("collector", name)))
+		names = append(names, name)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -91,6 +95,7 @@ func main() {
 	for _, c := range active {
 		g.Go(func() error { return c.Run(ctx, events) })
 	}
+	logger.Info("collectors enabled", "collectors", names, "count", len(names))
 
 	go func() {
 		if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
@@ -108,4 +113,5 @@ func main() {
 	if err := w.Run(context.Background()); err != nil {
 		logger.Error("sink exited with error", "error", err)
 	}
+	logger.Info("shutdown complete")
 }
