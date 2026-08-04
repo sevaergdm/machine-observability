@@ -26,9 +26,6 @@ type Writer struct {
 
 func NewWriter(events <-chan collector.Event, flush FlushFunc, maxRows int, maxAge time.Duration, logger *slog.Logger) *Writer {
 	return &Writer{
-		// events is deliberately unbuffered: collectors block while the sink is mid-flush
-		// Acceptable because flushes are fast local-disk writes and journald buffers upstream
-		// Revisit if flush latency ever grows
 		events:    events,
 		rowBuffer: make([]collector.Event, 0, maxRows),
 		maxRows:   maxRows,
@@ -44,6 +41,8 @@ func (w *Writer) doFlush() {
 	}
 
 	if err := w.flush(w.rowBuffer); err != nil {
+		// Flush failure will not clear the rowBuffer or reset firstRowsAt
+		// TODO: Handle a maximum amount of retries to prevent an infinte retry loop
 		w.logger.Error("flush failed", "error", err)
 		return
 	}

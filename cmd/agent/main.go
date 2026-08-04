@@ -76,6 +76,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// events is deliberately unbuffered: collectors block while the sink is mid-flush
+	// Acceptable because flushes are fast local-disk writes and journald buffers upstream
+	// Revisit if flush latency ever grows
 	events := make(chan collector.Event)
 
 	g, ctx := errgroup.WithContext(ctx)
