@@ -104,7 +104,14 @@ func main() {
 		close(events)
 	}()
 
-	flushFn := sink.NewParquetFlush[journal.Entry](cfg.DataDir, "journal")
+	parquetFlush := sink.NewParquetFlush[journal.Entry](cfg.DataDir, "journal")
+	flushFn := func(rows []collector.Event) error {
+		if err := parquetFlush(rows); err != nil {
+			return err
+		}
+		last := rows[len(rows)-1].(journal.Entry)
+		return last.WriteCursor(cfg.StateDir)
+	}	
 
 	w := sink.NewWriter(events, flushFn, sink.DefaultMaxRows, sink.DefaultMaxAge, logger.With("component", "sink"))
 	// Using background context here because reusing the existing ctx would mean that the writer would cancel while

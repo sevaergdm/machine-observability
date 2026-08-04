@@ -1,6 +1,11 @@
 package journal
 
-import "time"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+)
 
 type Entry struct {
 	Cursor             string    `parquet:"cursor" json:"cursor"`
@@ -27,3 +32,31 @@ type Entry struct {
 func (e Entry) Source() string { return "journal" }
 
 func (e Entry) Timestamp() time.Time { return e.RealtimeTimestamp }
+
+func (e Entry) WriteCursor(stateDir string) error {
+	cursor := e.Cursor
+
+	tmp := filepath.Join(stateDir, "journal.cursor.tmp")
+	final := filepath.Join(stateDir, "journal.cursor")
+
+	f, err := os.Create(tmp)
+	if err != nil {
+		return fmt.Errorf("encountered an error creating cursor file: %v", err)
+	}
+
+	if	_, err := f.WriteString(cursor); err != nil {
+		return fmt.Errorf("encountered an error writing cursor to file: %v", err)
+	}
+
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("encountered an error syncing to disk: %v", err)
+	}
+
+	_ = f.Close()
+
+	if err := os.Rename(tmp, final); err != nil {
+		return fmt.Errorf("encountered an error renaming cursor file: %v", err)
+	}
+
+	return nil
+}
