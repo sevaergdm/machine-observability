@@ -66,6 +66,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = sink.CleanTmp(cfg.DataDir, logger)
+	if err != nil {
+		logger.Error("failed to clean data directory", "error", err)
+	}
+
 	var active []collector.Collector
 	for name, collectorConfig := range cfg.Collectors {
 		if !collectorConfig.Enabled {
@@ -94,10 +99,7 @@ func main() {
 		close(events)
 	}()
 
-	flushFn := func(rows []collector.Event) error {
-		logger.Info("flush (parquet not yet implemented)", "rows", len(rows))
-		return nil
-	}
+	flushFn := sink.NewParquetFlush[journal.Entry](cfg.DataDir, "journal")
 
 	w := sink.NewWriter(events, flushFn, sink.DefaultMaxRows, sink.DefaultMaxAge, logger.With("component", "sink"))
 	// Using background context here because reusing the existing ctx would mean that the writer would cancel while
