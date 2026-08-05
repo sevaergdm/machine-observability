@@ -11,6 +11,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/parquet-go/parquet-go"
+	"github.com/parquet-go/parquet-go/compress/zstd"
 )
 
 func NewParquetFlush[T any](dataDir, source string) FlushFunc {
@@ -43,7 +44,7 @@ func NewParquetFlush[T any](dataDir, source string) FlushFunc {
 			return fmt.Errorf("encountered an error creating parquet file: %v", err)
 		}
 
-		writer := parquet.NewGenericWriter[T](f)
+		writer := parquet.NewGenericWriter[T](f, parquet.Compression(&zstd.Codec{}))
 		_, err = writer.Write(out)
 		if err != nil {
 			return fmt.Errorf("encountered an error writing to parquet file: %v", err)

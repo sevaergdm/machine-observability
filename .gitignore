@@ -1,3 +1,5 @@
 docs/*
 config.toml
 bin/*
+rss.log
+agent.log
