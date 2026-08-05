@@ -41,21 +41,22 @@ func (e Entry) WriteCursor(stateDir string) error {
 
 	f, err := os.Create(tmp)
 	if err != nil {
-		return fmt.Errorf("encountered an error creating cursor file: %v", err)
+		return fmt.Errorf("encountered an error creating cursor file: %w", err)
 	}
+	defer f.Close()
 
 	if	_, err := f.WriteString(cursor); err != nil {
-		return fmt.Errorf("encountered an error writing cursor to file: %v", err)
+		return fmt.Errorf("encountered an error writing cursor to file: %w", err)
 	}
 
 	if err := f.Sync(); err != nil {
-		return fmt.Errorf("encountered an error syncing to disk: %v", err)
+		return fmt.Errorf("encountered an error syncing to disk: %w", err)
 	}
 
 	_ = f.Close()
 
 	if err := os.Rename(tmp, final); err != nil {
-		return fmt.Errorf("encountered an error renaming cursor file: %v", err)
+		return fmt.Errorf("encountered an error renaming cursor file: %w", err)
 	}
 
 	return nil

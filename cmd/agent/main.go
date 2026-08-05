@@ -12,20 +12,31 @@ import (
 	"machine-observability/internal/sink"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"golang.org/x/sync/errgroup"
 )
 
+type buildDeps struct {
+	logger   *slog.Logger
+	stateDir string
+}
+
 type registration struct {
 	kind  config.Kind
-	build func(logger *slog.Logger) collector.Collector
+	build func(d buildDeps) collector.Collector
 }
 
 var registry = map[string]registration{
 	"journal": {
-		kind:  config.Streaming,
-		build: func(logger *slog.Logger) collector.Collector { return &journal.Collector{Logger: logger} },
+		kind: config.Streaming,
+		build: func(d buildDeps) collector.Collector {
+			return &journal.Collector{
+				Logger:     d.logger,
+				CursorPath: filepath.Join(d.stateDir, "journal.cursor"),
+			}
+		},
 	},
 }
 
@@ -79,7 +90,10 @@ func main() {
 		if !collectorConfig.Enabled {
 			continue
 		}
-		active = append(active, registry[name].build(logger.With("collector", name)))
+		active = append(active, registry[name].build(buildDeps{
+			logger:   logger.With("collector", name),
+			stateDir: cfg.StateDir,
+		}))
 		names = append(names, name)
 	}
 
@@ -109,9 +123,10 @@ func main() {
 		if err := parquetFlush(rows); err != nil {
 			return err
 		}
+		// safe: parquetFlush validated row types above
 		last := rows[len(rows)-1].(journal.Entry)
 		return last.WriteCursor(cfg.StateDir)
-	}	
+	}
 
 	w := sink.NewWriter(events, flushFn, sink.DefaultMaxRows, sink.DefaultMaxAge, logger.With("component", "sink"))
 	// Using background context here because reusing the existing ctx would mean that the writer would cancel while
