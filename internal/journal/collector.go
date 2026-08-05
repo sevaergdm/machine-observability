@@ -1,9 +1,11 @@
 package journal
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -18,6 +20,7 @@ import (
 type Collector struct {
 	Logger        *slog.Logger
 	CursorPath    string
+	lastCursor    string
 	parseFailures int
 }
 
@@ -48,6 +51,7 @@ func (c *Collector) consumeStream(ctx context.Context, r io.Reader, events chan<
 
 		select {
 		case events <- event:
+			c.lastCursor = event.Cursor
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -56,11 +60,11 @@ func (c *Collector) consumeStream(ctx context.Context, r io.Reader, events chan<
 	return decodeErr
 }
 
-func (c *Collector) runOnce(ctx context.Context, events chan<- collector.Event, cursor string) error {
+func (c *Collector) runOnce(ctx context.Context, events chan<- collector.Event) error {
 	args := []string{"-f", "-o", "json", "--no-pager"}
 
-	if cursor != "" {
-		args = append(args, "--after-cursor", cursor)
+	if c.lastCursor != "" {
+		args = append(args, "--after-cursor", c.lastCursor)
 	}
 	cmd := exec.CommandContext(ctx, "journalctl", args...)
 
@@ -68,6 +72,9 @@ func (c *Collector) runOnce(ctx context.Context, events chan<- collector.Event, 
 	if err != nil {
 		return err
 	}
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 
 	if err := cmd.Start(); err != nil {
 		return err
@@ -83,7 +90,11 @@ func (c *Collector) runOnce(ctx context.Context, events chan<- collector.Event, 
 	if decodeErr != nil {
 		return decodeErr
 	}
-	return waitErr
+
+	if waitErr != nil {
+		return fmt.Errorf("journalctl: %w (%s)", waitErr, strings.TrimSpace(stderr.String()))
+	}
+	return nil
 }
 
 func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) error {
@@ -100,13 +111,28 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 	case !errors.Is(err, fs.ErrNotExist):
 		c.Logger.Warn("could not read cursor file, starting from now", "error", err)
 	}
+	c.lastCursor = cursor
 
 	delay := time.Second
+	shortFailures := 0
 	for {
 		started := time.Now()
-		err := c.runOnce(ctx, events, cursor)
+		before := c.lastCursor
+		err := c.runOnce(ctx, events)
 		if ctx.Err() != nil {
 			return ctx.Err()
+		}
+		advanced := c.lastCursor != before
+
+		if err != nil && !advanced && time.Since(started) < 2*time.Second && c.lastCursor != "" {
+			shortFailures++
+			if shortFailures >= 3 {
+				c.Logger.Warn("journalctl failing immediately with cursor set: clearing cursor, starting from now", "cursor", c.lastCursor, "failures", shortFailures)
+				c.lastCursor = ""
+				shortFailures = 0
+			}
+		} else {
+			shortFailures = 0
 		}
 
 		if time.Since(started) > time.Minute {

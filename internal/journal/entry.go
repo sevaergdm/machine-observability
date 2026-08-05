@@ -45,7 +45,7 @@ func (e Entry) WriteCursor(stateDir string) error {
 	}
 	defer f.Close()
 
-	if	_, err := f.WriteString(cursor); err != nil {
+	if _, err := f.WriteString(cursor); err != nil {
 		return fmt.Errorf("encountered an error writing cursor to file: %w", err)
 	}
 
