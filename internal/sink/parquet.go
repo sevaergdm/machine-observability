@@ -43,29 +43,27 @@ func NewParquetFlush[T any](dataDir, source string) FlushFunc {
 		if err != nil {
 			return fmt.Errorf("encountered an error creating parquet file: %v", err)
 		}
+		defer func() { _ = f.Close() }()
 
 		writer := parquet.NewGenericWriter[T](f, parquet.Compression(&zstd.Codec{}))
 		_, err = writer.Write(out)
 		if err != nil {
 			return fmt.Errorf("encountered an error writing to parquet file: %v", err)
 		}
-		err = writer.Close()
-		if err != nil {
+
+		if err := writer.Close(); err != nil {
 			return fmt.Errorf("encountered an error closing parquet writer: %v", err)
 		}
 
-		err = f.Sync()
-		if err != nil {
+		if err := f.Sync(); err != nil {
 			return fmt.Errorf("encountered an error syncing to disk: %v", err)
 		}
 
-		err = f.Close()
-		if err != nil {
+		if err := f.Close(); err != nil {
 			return fmt.Errorf("encountered an error closing file: %v", err)
 		}
 
-		err = os.Rename(tmp, final)
-		if err != nil {
+		if err := os.Rename(tmp, final); err != nil {
 			return fmt.Errorf("encountered an error renaming file '%s' to '%s': %v", tmp, final, err)
 		}
 
