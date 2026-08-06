@@ -38,7 +38,7 @@ func (c *Collector) consumeStream(ctx context.Context, r io.Reader, events chan<
 			break
 		}
 
-		event, err := Parse(raw)
+		event, err := parse(raw)
 		if err != nil {
 			c.parseFailures++
 			cursor, _ := raw["__CURSOR"].(string)

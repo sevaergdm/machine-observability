@@ -27,7 +27,7 @@ var promotedKeys = map[string]bool{
 	"_TRANSPORT":            true,
 }
 
-func Parse(raw map[string]any) (Entry, error) {
+func parse(raw map[string]any) (Entry, error) {
 	realtimeTimestamp, err := parseTimestamp(raw["__REALTIME_TIMESTAMP"])
 	if err != nil {
 		return Entry{}, err
@@ -54,7 +54,7 @@ func Parse(raw map[string]any) (Entry, error) {
 	}
 
 	event := Entry{
-		RealtimeTimestamp:  realtimeTimestamp,
+		Ts:                 realtimeTimestamp,
 		MonotonicTimestamp: *monotonicTimestamp,
 		Message:            getMessage(raw),
 		Priority:           getInt(raw, "PRIORITY"),

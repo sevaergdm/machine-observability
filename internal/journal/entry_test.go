@@ -13,7 +13,7 @@ import (
 var fullEntry = Entry{
 	Cursor:             "s=065df9afa2ff4fe0a0b63d9c94a363ad;i=70b2d6;b=a7ee7b855a80493dadd29ca0054a802a;m=843e7d075;t=657315588f0f8;x=c010c66555fbf97",
 	MonotonicTimestamp: 35499004021,
-	RealtimeTimestamp:  time.UnixMicro(1784719260315896),
+	Ts:                 time.UnixMicro(1784719260315896),
 	SeqNum:             7385814,
 	SeqNumId:           "065df9afa2ff4fe0a0b63d9c94a363ad",
 	Message:            new("gtk_widget_get_scale_factor: assertion 'GTK_IS_WIDGET (widget)' failed"),
@@ -31,7 +31,7 @@ var fullEntry = Entry{
 var minimalEntry = Entry{
 	Cursor:             "s=065df9afa2ff4fe0a0b63d9c94a363ad;i=70b2d6;b=a7ee7b855a80493dadd29ca0054a802a;m=843e7d075;t=657315588f0f8;x=c010c66555fbf97",
 	MonotonicTimestamp: 35499004021,
-	RealtimeTimestamp:  time.UnixMicro(1784719260315896),
+	Ts:                 time.UnixMicro(1784719260315896),
 	SeqNum:             7385814,
 	SeqNumId:           "065df9afa2ff4fe0a0b63d9c94a363ad",
 	Fields:             `{}`,
@@ -40,7 +40,7 @@ var minimalEntry = Entry{
 var byteArrayEntry = Entry{
 	Cursor:             "s=065df9afa2ff4fe0a0b63d9c94a363ad;i=70b2d6;b=a7ee7b855a80493dadd29ca0054a802a;m=843e7d075;t=657315588f0f8;x=c010c66555fbf97",
 	MonotonicTimestamp: 35499004021,
-	RealtimeTimestamp:  time.UnixMicro(1784719260315896),
+	Ts:                 time.UnixMicro(1784719260315896),
 	SeqNum:             7385814,
 	SeqNumId:           "065df9afa2ff4fe0a0b63d9c94a363ad",
 	Message:            new("binary test \uFFFD\uFFFD end"),

@@ -33,7 +33,7 @@ func TestParseSyntheticData(t *testing.T) {
 			line: `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1","PRIORITY":"6","SYSLOG_FACILITY":"3","SYSLOG_IDENTIFIER":"sshd","MESSAGE":"Accepted publickey for michael"}`,
 			want: Entry{
 				Cursor:             "s=abc;i=1f4",
-				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
+				Ts:                 time.UnixMicro(1753142400000000).UTC(),
 				MonotonicTimestamp: 5000000,
 				SeqNum:             500,
 				SeqNumId:           "seq-1",
@@ -48,7 +48,7 @@ func TestParseSyntheticData(t *testing.T) {
 			line: `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1"}`,
 			want: Entry{
 				Cursor:             "s=abc;i=1f4",
-				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
+				Ts:                 time.UnixMicro(1753142400000000).UTC(),
 				MonotonicTimestamp: 5000000,
 				SeqNum:             500,
 				SeqNumId:           "seq-1",
@@ -59,7 +59,7 @@ func TestParseSyntheticData(t *testing.T) {
 			line: `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1", "MESSAGE":[104,105,32,255]}`,
 			want: Entry{
 				Cursor:             "s=abc;i=1f4",
-				RealtimeTimestamp:  time.UnixMicro(1753142400000000).UTC(),
+				Ts:                 time.UnixMicro(1753142400000000).UTC(),
 				MonotonicTimestamp: 5000000,
 				SeqNum:             500,
 				SeqNumId:           "seq-1",
@@ -75,7 +75,7 @@ func TestParseSyntheticData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Parse(decode(t, tt.line))
+			got, err := parse(decode(t, tt.line))
 
 			if tt.wantErr {
 				if err == nil {
@@ -99,7 +99,7 @@ func TestParseSyntheticData(t *testing.T) {
 func TestParseFields(t *testing.T) {
 	line := `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1", "MESSAGE":"hello","_EXE":"/usr/bin/sshd","_CMDLINE":"sshd: michael [priv]"}`
 
-	got, err := Parse(decode(t, line))
+	got, err := parse(decode(t, line))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestParseFields(t *testing.T) {
 func TestParseFieldsEmpty(t *testing.T) {
 	line := `{"__CURSOR":"s=abc;i=1f4","__REALTIME_TIMESTAMP":"1753142400000000","__MONOTONIC_TIMESTAMP":"5000000","__SEQNUM":"500","__SEQNUM_ID":"seq-1", "MESSAGE":"hello","_PID":"1234"}`
 
-	got, err := Parse(decode(t, line))
+	got, err := parse(decode(t, line))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestParseRealFixtures(t *testing.T) {
 				t.Fatalf("reading fixture: %v", err)
 			}
 
-			got, err := Parse(decode(t, string(data)))
+			got, err := parse(decode(t, string(data)))
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
