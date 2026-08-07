@@ -20,7 +20,10 @@ func TestParseStat(t *testing.T) {
 	}
 	defer f.Close()
 
-	ts, _ := time.Parse("2006-01-02 15:04:05", tsString)
+	ts, err := time.Parse("2006-01-02 15:04:05", tsString)
+	if err != nil {
+		t.Fatalf("unecpected error parsing timestamp '%s': %v", tsString, err)
+	}
 
 	tests := []struct {
 		name    string
@@ -99,6 +102,11 @@ intr 12345
 				{BootId: bootId, Ts: ts, Cpu: "1", User: 100, Nice: 100, System: 100, Idle: 100, Iowait: 100, Irq: 100, SoftIrq: 100, Steal: 100},
 			},
 		},
+		{
+			name:    "no cpu lines, expect error",
+			input:   strings.NewReader("intr 12345"),
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -122,4 +130,82 @@ intr 12345
 			}
 		})
 	}
+}
+
+func TestParseStatRealFile(t *testing.T) {
+	f, err := os.Open("testdata/stat")
+	if err != nil {
+		t.Fatalf("unexpected error opening test file: %v", err)
+	}
+	defer f.Close()
+
+	ts, err := time.Parse("2006-01-02 15:04:05", tsString)
+	if err != nil {
+		t.Fatalf("unecpected error parsing timestamp '%s': %v", tsString, err)
+	}
+
+	got, err := parseStat(f, bootId, ts)
+	if err != nil {
+		t.Fatalf("unexpected error parsing %s: %v", f.Name(), err)
+	}
+
+	var sum, all Entry
+	for _, entry := range got {
+		if entry.Cpu == "all" {
+			all = entry
+			continue
+		}
+		sum.User += entry.User
+		sum.Nice += entry.Nice
+		sum.System += entry.System
+		sum.Idle += entry.Idle
+		sum.Iowait += entry.Iowait
+		sum.Irq += entry.Irq
+		sum.SoftIrq += entry.SoftIrq
+		sum.Steal += entry.Steal
+	}
+
+	// Because the total sum on the cpu line is calculated prior to truncation to "jiffies" by the kernel the value can differ by up to 1 jiffy
+	// To accomodate this we account for a max diff being the total number of CPUs on the machine and expect the gap to never be negative due to the floor division
+	numCpus := len(got) - 1
+	gap := all.User - sum.User
+	if gap < 0 || gap > int64(numCpus) {
+		t.Errorf("user: aggregate-sum = %d, want within [0, %d]", gap, numCpus)
+	}
+
+	gap = all.Nice - sum.Nice
+	if gap < 0 || gap > int64(numCpus) {
+		t.Errorf("nice: aggregate-sum = %d, want within [0, %d]", gap, numCpus)
+	}
+
+	gap = all.System - sum.System
+	if gap < 0 || gap > int64(numCpus) {
+		t.Errorf("System: aggregate-sum = %d, want within [0, %d]", gap, numCpus)
+	}
+
+	gap = all.Idle - sum.Idle
+	if gap < 0 || gap > int64(numCpus) {
+		t.Errorf("Idle: aggregate-sum = %d, want within [0, %d]", gap, numCpus)
+	}
+
+	gap = all.Iowait - sum.Iowait
+	if gap < 0 || gap > int64(numCpus) {
+		t.Errorf("Iowait: aggregate-sum = %d, want within [0, %d]", gap, numCpus)
+	}
+
+	gap = all.Irq - sum.Irq
+	if gap < 0 || gap > int64(numCpus) {
+		t.Errorf("Irq: aggregate-sum = %d, want within [0, %d]", gap, numCpus)
+	}
+
+	gap = all.SoftIrq - sum.SoftIrq
+	if gap < 0 || gap > int64(numCpus) {
+		t.Errorf("SoftIrq: aggregate-sum = %d, want within [0, %d]", gap, numCpus)
+	}
+
+	gap = all.Steal - sum.Steal
+	if gap < 0 || gap > int64(numCpus) {
+		t.Errorf("Steal: aggregate-sum = %d, want within [0, %d]", gap, numCpus)
+	}
+
 }

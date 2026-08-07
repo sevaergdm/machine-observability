@@ -31,9 +31,7 @@ func parseStat(r io.Reader, bootId string, ts time.Time) ([]Entry, error) {
 			cpu = strings.TrimPrefix(splitLine[0], "cpu")
 		}
 
-		// using a closure to convert all numeric fields to int64 and capturing any errors
-		// it doesn't matter if parseErr is overwritten by any particular value because we will fail and
-		// return on any error
+		// capture the first parse error; later calls still run but don't mask
 		var parseErr error
 		p := func(i int) int64 {
 			v, err := strconv.ParseInt(splitLine[i], 10, 64)
@@ -59,15 +57,14 @@ func parseStat(r io.Reader, bootId string, ts time.Time) ([]Entry, error) {
 		if parseErr != nil {
 			return nil, parseErr
 		}
-
-		if scanner.Err() != nil {
-			return nil, fmt.Errorf("encountered an error reading /proc/stat: %w", scanner.Err())
-		}
-
 		entries = append(entries, entry)
-		if entries == nil {
-			return nil, fmt.Errorf("returned no rows after parsing")
-		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("encountered an error reading /proc/stat: %w", err)
+	}
+
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("no cpu lines found")
 	}
 	return entries, nil
 }
