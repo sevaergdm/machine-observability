@@ -42,6 +42,8 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 			}
 			c.sampleFailures = 0
 
+			// Shutdown can interrupt this loop mid-tick, delivering only some of the tick's rows (the sink flushes whatever arrived).
+			// Acceptable: each row is individually true; only tick-level aggregations (e.g. "all" vs sum of cores) won't balance for the final timestamp.
 			for _, entry := range entries {
 				select {
 				case events <- entry:
@@ -62,6 +64,6 @@ func (c *Collector) sample() ([]Entry, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return parseStat(f, c.BootId, time.Now().UTC())
 }

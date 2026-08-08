@@ -102,6 +102,7 @@ func main() {
 	bootId, err := fetchBootId()
 	if err != nil {
 		logger.Error("failed to fetch the current boot_id", "error", err)
+		os.Exit(1)
 	}
 
 	var active []collector.Collector
@@ -130,12 +131,10 @@ func main() {
 	var wg sync.WaitGroup
 	var failed atomic.Int32
 	for _, c := range active {
-		wg.Add(1)
 		wg.Go(func() {
-			defer wg.Done()
-			if err := c.Run(ctx, events); err != nil || !errors.Is(err, context.Canceled) {
+			if err := c.Run(ctx, events); err != nil && !errors.Is(err, context.Canceled) {
 				failed.Add(1)
-				logger.Error("collector stopped permanently", "error", err)
+				logger.Error("collector stopped permanently", "error", err, "collector", c.Name())
 			}
 		})
 	}
@@ -164,7 +163,13 @@ func main() {
 	if err := w.Run(context.Background()); err != nil {
 		logger.Error("sink exited with error", "error", err)
 	}
+
 	logger.Info("shutdown complete")
+
+	// Only fires if all collectors have failed (after the last collector has failed and cleanup is complete)
+	if ctx.Err() == nil && failed.Load() > 0 {
+		os.Exit(1)
+	}
 }
 
 func fetchBootId() (string, error) {

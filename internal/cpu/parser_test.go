@@ -108,7 +108,7 @@ func TestParseStatRealFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error opening test file: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ts, err := time.Parse("2006-01-02 15:04:05", tsString)
 	if err != nil {
