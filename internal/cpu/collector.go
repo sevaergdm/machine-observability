@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const MAX_FAILURES = 5
+const maxFailures = 5
 
 type Collector struct {
 	Logger         *slog.Logger
@@ -34,10 +34,11 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 			entries, err := c.sample()
 			if err != nil {
 				c.sampleFailures++
-				c.Logger.Debug("failed to sample", "error", err)
-				if c.sampleFailures > MAX_FAILURES {
-					return fmt.Errorf("sample failures exceeded threshold of %d, shutting down collector", MAX_FAILURES)
+				c.Logger.Warn("failed to sample", "error", err)
+				if c.sampleFailures > maxFailures {
+					return fmt.Errorf("sample failures exceeded threshold of %d, shutting down collector", maxFailures)
 				}
+				continue
 			}
 			c.sampleFailures = 0
 

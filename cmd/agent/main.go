@@ -8,12 +8,15 @@ import (
 	"log/slog"
 	"machine-observability/internal/collector"
 	"machine-observability/internal/config"
+	"machine-observability/internal/cpu"
 	"machine-observability/internal/journal"
 	"machine-observability/internal/sink"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -21,6 +24,8 @@ import (
 type buildDeps struct {
 	logger   *slog.Logger
 	stateDir string
+	interval time.Duration
+	bootId   string
 }
 
 type registration struct {
@@ -35,6 +40,16 @@ var registry = map[string]registration{
 			return &journal.Collector{
 				Logger:     d.logger,
 				CursorPath: filepath.Join(d.stateDir, "journal.cursor"),
+			}
+		},
+	},
+	"cpu": {
+		kind: config.Polling,
+		build: func(d buildDeps) collector.Collector {
+			return &cpu.Collector{
+				Logger:   d.logger,
+				BootId:   d.bootId,
+				Interval: d.interval,
 			}
 		},
 	},
@@ -84,6 +99,11 @@ func main() {
 		logger.Error("failed to clean data directory", "error", err)
 	}
 
+	bootId, err := fetchBootId()
+	if err != nil {
+		logger.Error("failed to fetch the current boot_id", "error", err)
+	}
+
 	var active []collector.Collector
 	var names []string
 	for name, collectorConfig := range cfg.Collectors {
@@ -93,6 +113,8 @@ func main() {
 		active = append(active, registry[name].build(buildDeps{
 			logger:   logger.With("collector", name),
 			stateDir: cfg.StateDir,
+			interval: collectorConfig.Interval.Duration,
+			bootId:   bootId,
 		}))
 		names = append(names, name)
 	}
@@ -136,4 +158,12 @@ func main() {
 		logger.Error("sink exited with error", "error", err)
 	}
 	logger.Info("shutdown complete")
+}
+
+func fetchBootId() (string, error) {
+	bootIdBytes, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
+	if err != nil {
+		return "", fmt.Errorf("unexpected error reading boot_id: %w", err)
+	}
+	return strings.TrimSuffix(string(bootIdBytes), "\n"), nil
 }
