@@ -24,6 +24,11 @@ type Writer struct {
 	firstRowAt time.Time
 }
 
+type Tuning struct {
+	MaxRows int
+	MaxAge  time.Duration
+}
+
 func NewWriter(events <-chan collector.Event, flush FlushFunc, maxRows int, maxAge time.Duration, logger *slog.Logger) *Writer {
 	return &Writer{
 		events:    events,
