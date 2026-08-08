@@ -15,10 +15,10 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
-
-	"golang.org/x/sync/errgroup"
 )
 
 type buildDeps struct {
@@ -127,16 +127,23 @@ func main() {
 	// Revisit if flush latency ever grows
 	events := make(chan collector.Event)
 
-	g, ctx := errgroup.WithContext(ctx)
+	var wg sync.WaitGroup
+	var failed atomic.Int32
 	for _, c := range active {
-		g.Go(func() error { return c.Run(ctx, events) })
+		wg.Add(1)
+		wg.Go(func() {
+			defer wg.Done()
+			if err := c.Run(ctx, events); err != nil || !errors.Is(err, context.Canceled) {
+				failed.Add(1)
+				logger.Error("collector stopped permanently", "error", err)
+			}
+		})
 	}
 	logger.Info("collectors enabled", "collectors", names, "count", len(names))
 
 	go func() {
-		if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
-			logger.Error("collector failed with error", "error", err)
-		}
+		wg.Wait()
+		logger.Info("all collectors stopped, draining sink")
 		close(events)
 	}()
 
