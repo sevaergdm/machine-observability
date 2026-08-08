@@ -162,9 +162,11 @@ func main() {
 
 	if err := manager.Register("journal", journalFlushFn, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: sink.DefaultMaxAge}); err != nil {
 		logger.Error("unable to register", "error", err, "source", "journal")
+		os.Exit(1)
 	}
 	if err := manager.Register("cpu", cpuFlush, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: 5 * time.Minute}); err != nil {
 		logger.Error("unable to register", "error", err, "source", "cpu")
+		os.Exit(1)
 	}
 	manager.Run()
 	logger.Info("shutdown complete")
