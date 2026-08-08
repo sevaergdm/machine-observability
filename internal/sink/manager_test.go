@@ -9,14 +9,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-var gotA, gotB [][]collector.Event
-
-var flushA = func(rows []collector.Event) error { gotA = append(gotA, rows); return nil }
-var flushB = func(rows []collector.Event) error { gotB = append(gotB, rows); return nil }
-
 var tuning = Tuning{MaxRows: 100, MaxAge: time.Hour}
 
 func TestManagerRoutesBySource(t *testing.T) {
+	var gotA, gotB [][]collector.Event
+
+	flushA := func(rows []collector.Event) error { gotA = append(gotA, rows); return nil }
+	flushB := func(rows []collector.Event) error { gotB = append(gotB, rows); return nil }
+
 	events := make(chan collector.Event)
 	m := NewManager(events, slog.New(slog.DiscardHandler))
 	if err := m.Register("a", flushA, tuning); err != nil {
@@ -48,6 +48,9 @@ func TestManagerRoutesBySource(t *testing.T) {
 }
 
 func TestManagerDuplicateRoute(t *testing.T) {
+	var gotA [][]collector.Event
+	flushA := func(rows []collector.Event) error { gotA = append(gotA, rows); return nil }
+
 	events := make(chan collector.Event)
 	m := NewManager(events, slog.New(slog.DiscardHandler))
 	if err := m.Register("a", flushA, tuning); err != nil {
@@ -60,6 +63,9 @@ func TestManagerDuplicateRoute(t *testing.T) {
 }
 
 func TestManagerLateStart(t *testing.T) {
+	var gotA [][]collector.Event
+	flushA := func(rows []collector.Event) error { gotA = append(gotA, rows); return nil }
+
 	events := make(chan collector.Event)
 	m := NewManager(events, slog.New(slog.DiscardHandler))
 	close(events)
@@ -68,5 +74,4 @@ func TestManagerLateStart(t *testing.T) {
 	if err := m.Register("a", flushA, tuning); err == nil {
 		t.Errorf("expected late start error, but got none")
 	}
-
 }

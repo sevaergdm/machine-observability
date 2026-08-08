@@ -22,6 +22,10 @@ type Manager struct {
 }
 
 func NewManager(events <-chan collector.Event, logger *slog.Logger) *Manager {
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
+	}
+
 	return &Manager{
 		events: events,
 		routes: make(map[string]route),
@@ -50,9 +54,6 @@ func (m *Manager) Register(source string, flush FlushFunc, t Tuning) error {
 }
 
 func (m *Manager) Run() {
-	if m.logger == nil {
-		m.logger = slog.New(slog.DiscardHandler)
-	}
 
 	m.started = true
 
