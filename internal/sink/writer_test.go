@@ -8,9 +8,12 @@ import (
 	"time"
 )
 
-type fakeEvent struct{ n int }
+type fakeEvent struct {
+	Src string
+	N   int
+}
 
-func (f fakeEvent) Source() string       { return "fake" }
+func (f fakeEvent) Source() string       { return f.Src }
 func (f fakeEvent) Timestamp() time.Time { return time.Time{} }
 
 func TestFlushOnRowCount(t *testing.T) {
@@ -27,7 +30,7 @@ func TestFlushOnRowCount(t *testing.T) {
 	}()
 
 	for i := range 3 {
-		events <- fakeEvent{n: i}
+		events <- fakeEvent{N: i}
 	}
 
 	select {
@@ -53,7 +56,7 @@ func TestFlushOnAge(t *testing.T) {
 		_ = w.Run(t.Context())
 	}()
 
-	events <- fakeEvent{n: 1}
+	events <- fakeEvent{N: 1}
 
 	select {
 	case batch := <-flushes:
@@ -77,8 +80,8 @@ func TestFlushOnClose(t *testing.T) {
 	done := make(chan error, 1)
 	go func() { done <- w.Run(t.Context()) }()
 
-	events <- fakeEvent{n: 1}
-	events <- fakeEvent{n: 2}
+	events <- fakeEvent{N: 1}
+	events <- fakeEvent{N: 2}
 	close(events)
 
 	if err := <-done; err != nil {
@@ -108,7 +111,7 @@ func TestFlushOnCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	go func() { done <- w.Run(ctx) }()
 
-	events <- fakeEvent{n: 1}
+	events <- fakeEvent{N: 1}
 	cancel()
 
 	select {

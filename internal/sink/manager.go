@@ -2,7 +2,6 @@ package sink
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"machine-observability/internal/collector"
@@ -26,6 +25,7 @@ func NewManager(events <-chan collector.Event, logger *slog.Logger) *Manager {
 	return &Manager{
 		events: events,
 		routes: make(map[string]route),
+		logger: logger,
 	}
 }
 
@@ -43,20 +43,24 @@ func (m *Manager) Register(source string, flush FlushFunc, t Tuning) error {
 	}
 
 	ch := make(chan collector.Event)
-	w := NewWriter(m.events, flush, t.MaxRows, t.MaxAge, m.logger)
+	w := NewWriter(ch, flush, t.MaxRows, t.MaxAge, m.logger.With("source", source))
 	m.routes[source] = route{ch: ch, w: w}
 
 	return nil
 }
 
 func (m *Manager) Run() {
+	if m.logger == nil {
+		m.logger = slog.New(slog.DiscardHandler)
+	}
+
 	m.started = true
 
 	for source, r := range m.routes {
-		m.wg.Go(func() { 
-			if err := r.w.Run(context.Background()); err != nil && !errors.Is(err, context.Canceled) {
-				m.logger.Error("failed to create goroutine", "source", source)
-			} 
+		m.wg.Go(func() {
+			if err := r.w.Run(context.Background()); err != nil {
+				m.logger.Error("writer exited with error", "error", err, "source", source)
+			}
 		})
 	}
 
