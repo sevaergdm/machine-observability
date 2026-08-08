@@ -10,7 +10,7 @@ import (
 type Entry struct {
 	Cursor             string    `parquet:"cursor" json:"cursor"`
 	MonotonicTimestamp int64     `parquet:"monotonic_ts" json:"monotonic_ts"`
-	Ts                 time.Time `parquet:"realtime_ts,timestamp(microsecond)" json:"realtime_ts"`
+	Ts                 time.Time `parquet:"ts,timestamp(microsecond)" json:"ts"`
 	SeqNum             int64     `parquet:"seqnum" json:"seqnum"`
 	SeqNumId           string    `parquet:"seqnum_id" json:"seqnum_id"`
 

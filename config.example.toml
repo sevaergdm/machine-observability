@@ -6,5 +6,5 @@ enabled = true
 
 [collectors.cpu]
 enabled = true
-interval = 10s
+interval = "10s"
 
