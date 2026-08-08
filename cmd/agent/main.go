@@ -146,9 +146,11 @@ func main() {
 		close(events)
 	}()
 
-	parquetFlush := sink.NewParquetFlush[journal.Entry](cfg.DataDir, "journal")
-	flushFn := func(rows []collector.Event) error {
-		if err := parquetFlush(rows); err != nil {
+	manager := sink.NewManager(events, logger.With("component", "sink"))
+
+	journalFlush := sink.NewParquetFlush[journal.Entry](cfg.DataDir, "journal")
+	journalFlushFn := func(rows []collector.Event) error {
+		if err := journalFlush(rows); err != nil {
 			return err
 		}
 		// safe: parquetFlush validated row types above
@@ -156,14 +158,15 @@ func main() {
 		return last.WriteCursor(cfg.StateDir)
 	}
 
-	w := sink.NewWriter(events, flushFn, sink.DefaultMaxRows, sink.DefaultMaxAge, logger.With("component", "sink"))
-	// Using background context here because reusing the existing ctx would mean that the writer would cancel while
-	// messages are still being pushed into events during shutdown. By using the separate context, we ensure that
-	// the writer stays until the channel closes
-	if err := w.Run(context.Background()); err != nil {
-		logger.Error("sink exited with error", "error", err)
-	}
+	cpuFlush := sink.NewParquetFlush[cpu.Entry](cfg.DataDir, "cpu")
 
+	if err := manager.Register("journal", journalFlushFn, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: sink.DefaultMaxAge}); err != nil {
+		logger.Error("unable to register", "error", err, "source", "journal")
+	}
+	if err := manager.Register("cpu", cpuFlush, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: 5 * time.Minute}); err != nil {
+		logger.Error("unable to register", "error", err, "source", "cpu")
+	}
+	manager.Run()
 	logger.Info("shutdown complete")
 
 	// Only fires if all collectors have failed (after the last collector has failed and cleanup is complete)

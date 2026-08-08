@@ -4,3 +4,7 @@ state_dir = "/tmp/lib/machine-observability/state"
 [collectors.journal]
 enabled = true
 
+[collectors.cpu]
+enabled = true
+interval = 10s
+
