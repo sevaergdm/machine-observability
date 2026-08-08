@@ -1,4 +1,4 @@
-package cpu
+package memory
 
 import (
 	"context"
@@ -18,7 +18,7 @@ type Collector struct {
 	sampleFailures int
 }
 
-func (c *Collector) Name() string { return "cpu" }
+func (c *Collector) Name() string { return "memory" }
 
 func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) error {
 	if c.Logger == nil {
@@ -31,7 +31,7 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 	for {
 		select {
 		case <-ticker.C:
-			entries, err := c.sample()
+			entry, err := c.sample()
 			if err != nil {
 				c.sampleFailures++
 				c.Logger.Warn("failed to sample", "error", err)
@@ -42,14 +42,10 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 			}
 			c.sampleFailures = 0
 
-			// Shutdown can interrupt this loop mid-tick, delivering only some of the tick's rows (the sink flushes whatever arrived).
-			// Acceptable: each row is individually true; only tick-level aggregations (e.g. "all" vs sum of cores) won't balance for the final timestamp.
-			for _, entry := range entries {
-				select {
-				case events <- entry:
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+			select {
+			case events <- entry:
+			case <-ctx.Done():
+				return ctx.Err()
 			}
 
 		case <-ctx.Done():
@@ -58,11 +54,11 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 	}
 }
 
-func (c *Collector) sample() ([]Entry, error) {
-	f, err := os.Open("/proc/stat")
+func (c *Collector) sample() (Entry, error) {
+	f, err := os.Open("/proc/meminfo")
 	if err != nil {
-		return nil, err
+		return Entry{}, err
 	}
 	defer func() { _ = f.Close() }()
-	return parseStat(f, c.BootId, time.Now().UTC())
+	return parseMemInfo(f, c.BootId, time.Now().UTC())
 }

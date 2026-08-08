@@ -3,8 +3,8 @@ package cpu
 import "time"
 
 type Entry struct {
-	BootId string    `parquet:"boot_id" json:"boot_id"`
-	Ts     time.Time `parquet:"ts" json:"ts"`
+	BootId string    `parquet:"boot_id" json:"boot_id" doc:"boot UUID taken from /proc/sys/kernel/random/boot_id (cross-source contract column)"`
+	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/stat was polled (cross-source contract column)"`
 
 	Cpu     string `parquet:"cpu" json:"cpu" doc:"cpu being measured, where 'all' is the aggregation of all cpus"`
 	User    int64  `parquet:"user" json:"user" doc:"jiffies (1/100s) in user space; cumulative since boot; /proc/stat value 1"`

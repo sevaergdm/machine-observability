@@ -82,12 +82,16 @@ intr 12345
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts, _ := time.Parse("2006-01-02 15:04:05", tsString)
+			ts, err := time.Parse("2006-01-02 15:04:05", tsString)
+			if err != nil {
+				t.Fatalf("unexpected error parsing timestamp '%s': %v", tsString, err)
+			}
+
 			got, err := parseStat(tt.input, bootId, ts)
 
 			if tt.wantErr {
 				if err == nil {
-					t.Fatal("expected an error, got none")
+					t.Errorf("expected an error, got none")
 				}
 				return
 			}
