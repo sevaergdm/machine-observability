@@ -38,6 +38,10 @@ func parseMemInfo(r io.Reader, bootId string, ts time.Time) (Entry, error) {
 			continue
 		}
 
+		if len(splitLine) < 2 {
+			return Entry{}, fmt.Errorf("malformed line for %s", field)
+		}
+
 		valueKb, err := strconv.ParseInt(splitLine[1], 10, 64)
 		if err != nil {
 			return Entry{}, fmt.Errorf("unable to parse value for %s: %w", field, err)
