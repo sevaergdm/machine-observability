@@ -8,3 +8,6 @@ enabled = true
 enabled = true
 interval = "10s"
 
+[collectors.memory]
+enabled = true
+interval = "10s"
