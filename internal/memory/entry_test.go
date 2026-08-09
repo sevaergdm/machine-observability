@@ -10,9 +10,7 @@ import (
 	"github.com/parquet-go/parquet-go"
 )
 
-
-
-var EntryA = Entry{
+var entryA = Entry{
 	BootId:    "boot-123",
 	Ts:        time.UnixMicro(1784719260315896),
 	Total:     int64(32094844) * 1024,
@@ -26,7 +24,7 @@ var EntryA = Entry{
 	Slab:      int64(775948) * 1024,
 }
 
-var EntryB = Entry{
+var entryB = Entry{
 	BootId:    "boot-123",
 	Ts:        time.UnixMicro(1784719270315896),
 	Total:     int64(32094844) * 1024,
@@ -40,7 +38,7 @@ var EntryB = Entry{
 	Slab:      int64(775948) * 1024,
 }
 
-var EntryC = Entry{
+var entryC = Entry{
 	BootId:    "boot-123",
 	Ts:        time.UnixMicro(1784719280315896),
 	Total:     int64(32094844) * 1024,
@@ -55,7 +53,7 @@ var EntryC = Entry{
 }
 
 func TestEntryParquetRoundTrip(t *testing.T) {
-	entries := []Entry{EntryA, EntryB, EntryC}
+	entries := []Entry{entryA, entryB, entryC}
 
 	dir := t.TempDir()
 	if keep := os.Getenv("PARQUET_OUT"); keep != "" {
@@ -63,7 +61,7 @@ func TestEntryParquetRoundTrip(t *testing.T) {
 	}
 	path := filepath.Join(dir, "entries.parquet")
 	t.Log("wrote", path)
-f, err := os.Create(path)
+	f, err := os.Create(path)
 	if err != nil {
 		t.Fatalf("error creating path: %v", err)
 	}

@@ -4,7 +4,7 @@ import "time"
 
 type Entry struct {
 	BootId string    `parquet:"boot_id" json:"boot_id" doc:"boot UUID taken from /proc/sys/kernel/random/boot_id (cross-source contract column)"`
-	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/stat was polled (cross-source contract column)"`
+	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/meminfo was polled (cross-source contract column)"`
 
 	Total     int64 `parquet:"total" json:"total" doc:"bytes; gauge; usable RAM (physical minus kernal-reserved); MemTotal; meminfo 'kB' = KiB"`
 	Free      int64 `parquet:"free" json:"free" doc:"bytes; gauge; fully unused RAM. Low free is NORMAL (page cache eats spare RAM); MemFree; use available for pressure"`

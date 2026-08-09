@@ -10,7 +10,7 @@ import (
 	"github.com/parquet-go/parquet-go"
 )
 
-var EntryA = Entry{
+var entryA = Entry{
 	BootId:  "boot-123",
 	Ts:      time.UnixMicro(1784719260315896),
 	Cpu:     "all",
@@ -24,7 +24,7 @@ var EntryA = Entry{
 	Steal:   200,
 }
 
-var EntryB = Entry{
+var entryB = Entry{
 	BootId:  "boot-123",
 	Ts:      time.UnixMicro(1784719260315896),
 	Cpu:     "0",
@@ -38,9 +38,9 @@ var EntryB = Entry{
 	Steal:   100,
 }
 
-var EntryC = Entry{
-	BootId:    "boot-123",
-	Ts:        time.UnixMicro(1784719260315896),
+var entryC = Entry{
+	BootId:  "boot-123",
+	Ts:      time.UnixMicro(1784719260315896),
 	Cpu:     "1",
 	User:    100,
 	Nice:    100,
@@ -53,7 +53,7 @@ var EntryC = Entry{
 }
 
 func TestEntryParquetRoundTrip(t *testing.T) {
-	entries := []Entry{EntryA, EntryB, EntryC}
+	entries := []Entry{entryA, entryB, entryC}
 
 	dir := t.TempDir()
 	if keep := os.Getenv("PARQUET_OUT"); keep != "" {
