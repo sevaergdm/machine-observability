@@ -2,63 +2,30 @@ package memory
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 	"machine-observability/internal/collector"
 	"os"
 	"time"
 )
 
-const maxFailures = 5
-
-type Collector struct {
-	Logger         *slog.Logger
-	BootId         string
-	Interval       time.Duration
-	sampleFailures int
+type Sampler struct {
+	BootId string
 }
 
-func (c *Collector) Name() string { return "memory" }
+func (s *Sampler) Name() string { return "memory" }
 
-func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) error {
-	if c.Logger == nil {
-		c.Logger = slog.New(slog.DiscardHandler)
-	}
-
-	ticker := time.NewTicker(c.Interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			entry, err := c.sample()
-			if err != nil {
-				c.sampleFailures++
-				c.Logger.Warn("failed to sample", "error", err)
-				if c.sampleFailures > maxFailures {
-					return fmt.Errorf("sample failures exceeded threshold of %d, shutting down collector", maxFailures)
-				}
-				continue
-			}
-			c.sampleFailures = 0
-
-			select {
-			case events <- entry:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-}
-
-func (c *Collector) sample() (Entry, error) {
+func (s *Sampler) Sample(ctx context.Context) ([]collector.Event, error) {
+	var events []collector.Event
 	f, err := os.Open("/proc/meminfo")
 	if err != nil {
-		return Entry{}, err
+		return nil, err
 	}
 	defer func() { _ = f.Close() }()
-	return parseMemInfo(f, c.BootId, time.Now().UTC())
+
+	event, err := parseMemInfo(f, s.BootId, time.Now().UTC())
+	if err != nil {
+		return nil, err
+	}
+
+	events = append(events, event)
+	return events, nil
 }

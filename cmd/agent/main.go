@@ -47,21 +47,13 @@ var registry = map[string]registration{
 	"cpu": {
 		kind: config.Polling,
 		build: func(d buildDeps) collector.Collector {
-			return &cpu.Collector{
-				Logger:   d.logger,
-				BootId:   d.bootId,
-				Interval: d.interval,
-			}
+			return collector.NewPolling(&cpu.Sampler{BootId: d.bootId}, d.interval, d.logger)
 		},
 	},
 	"memory": {
 		kind: config.Polling,
 		build: func(d buildDeps) collector.Collector {
-			return &memory.Collector{
-				Logger:   d.logger,
-				BootId:   d.bootId,
-				Interval: d.interval,
-			}
+			return collector.NewPolling(&memory.Sampler{BootId: d.bootId}, d.interval, d.logger)
 		},
 	},
 }
