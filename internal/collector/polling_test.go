@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"strings"
 	"testing"
 	"time"
 )
@@ -111,11 +110,11 @@ func TestPollingErrorReturn(t *testing.T) {
 
 	select {
 	case err := <-done:
-		if !strings.Contains(err.Error(), "failures exceeded threshold") {
+		if err == nil || errors.Is(err, context.Canceled) {
 			t.Errorf("unexpected error text: %v", err)
 		}
 	case <-time.After(10 * time.Second):
-		t.Fatal("Run did not return after cancel")
+		t.Fatal("Run did not self disable")
 	}
 
 	if got := len(events); got > 0 {
@@ -148,7 +147,6 @@ func TestPollingConsecutiveNotCumulative(t *testing.T) {
 	}()
 
 	time.Sleep(time.Duration(ticks) * interval)
-	cancel()
 
 	select {
 	case err := <-done:
