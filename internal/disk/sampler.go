@@ -86,7 +86,7 @@ func (s *Sampler) Sample(ctx context.Context) ([]collector.Event, error) {
 
 func fetchDevices() (map[string]bool, error) {
 	// pseudo-devices excluded from disk_io collection; zram deliberately kept (its I/O is our swap-pressure signal)
-	skipDevicePrefixes := []string{"loop", "ram", "sr", "fs"}
+	skipDevicePrefixes := []string{"loop", "ram", "sr", "fd"}
 	devices := make(map[string]bool)
 
 	dir, err := os.ReadDir("/sys/block")
