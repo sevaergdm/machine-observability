@@ -144,10 +144,12 @@ func TestParseDiskStatsRealFile(t *testing.T) {
 	for _, v := range got {
 		countDevices[v.DeviceName]++
 
+		// every busy ms adds 1 to io_ms and at least 1 to weighted. queue depth >= 1 whenever busy
 		if v.IoMsWeighted < v.IoMs {
 			t.Errorf("%s: IoMsWeighted (%d) must match or exceed IoMs (%d)", v.DeviceName, v.IoMsWeighted, v.IoMs)
 		}
 
+		// column shift tripwire for the only gauge column. It's value is most often 0 but should never really exceed a few hundred
 		if v.IoInProgress > 10000 {
 			t.Errorf("%s: expect IoInProgress to be a low value, but got %d", v.DeviceName, v.IoInProgress)
 		}
@@ -177,9 +179,9 @@ func TestParseDiskStatsRealFile(t *testing.T) {
 		}
 	}
 
-	for device, count := range countDevices {
-		if count > 1 {
-			t.Errorf("device: %s has %d entries, should only have 1", device, count)
+	for _, want := range []string{"nvme0n1", "zram0"} {
+		if countDevices[want] != 1 {
+			t.Errorf("device %s: %d entries, want exactly 1", want, countDevices[want])
 		}
 	}
 
