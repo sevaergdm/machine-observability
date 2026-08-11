@@ -187,9 +187,11 @@ func main() {
 	}
 	if err := manager.Register("disk_io", diskIOFlush, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: 5 * time.Minute}); err != nil {
 		logger.Error("unable to register", "error", err, "source", "disk_io")
+		os.Exit(1)
 	}
 	if err := manager.Register("disk_fs", diskFSFlush, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: 5 * time.Minute}); err != nil {
-		logger.Error("unable to register", "error", err, "source", "disk_io")
+		logger.Error("unable to register", "error", err, "source", "disk_fs")
+		os.Exit(1)
 	}
 	manager.Run()
 	logger.Info("shutdown complete")
