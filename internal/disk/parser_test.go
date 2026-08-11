@@ -308,6 +308,7 @@ func TestParseMountInfoRealFile(t *testing.T) {
 			t.Errorf("mount %s: missing '/' prefix", v.mount)
 		}
 
+		// check if parsing separator is off by one which will give the wrong field value
 		if v.fstype == "" || v.fstype == "-" || strings.Contains(v.fstype, ":") {
 			t.Errorf("fstype %s is missing or malformed", v.fstype)
 		}
@@ -317,9 +318,9 @@ func TestParseMountInfoRealFile(t *testing.T) {
 		t.Errorf("missing root mount in file")
 	}
 
-	for mount, count := range countMounts {
-		if count > 1 {
-			t.Errorf("%s: has %d entries, should only have 1", mount, count)
+	for _, want := range []string{"/", "/boot", "/home", "/var/log", "/var/cache/pacman/pkg"} {
+		if countMounts[want] != 1 {
+			t.Errorf("mount %s has %d entries, want 1", want, countMounts[want])
 		}
 	}
 }
