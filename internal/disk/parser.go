@@ -100,7 +100,7 @@ func parseMountInfo(r io.Reader) ([]mountEntry, error) {
 		}
 
 		mount := fields[4]
-		var separatorIndex int
+		separatorIndex := -1
 		for i, field := range fields {
 			if field == "-" {
 				separatorIndex = i
@@ -108,8 +108,12 @@ func parseMountInfo(r io.Reader) ([]mountEntry, error) {
 			}
 		}
 
-		if separatorIndex == 0 {
+		if separatorIndex == -1 {
 			return nil, fmt.Errorf("malformed file, no '-' separator found")
+		}
+
+		if separatorIndex+2 >= len(fields) {
+			return nil, fmt.Errorf("malformed line: missing fstype/source after separator")
 		}
 
 		fstype := fields[separatorIndex+1]
