@@ -295,4 +295,31 @@ func TestParseMountInfoRealFile(t *testing.T) {
 	if len(got) != 5 {
 		t.Errorf("expected 5 entries, but got %d", len(got))
 	}
+
+	countMounts := make(map[string]int)
+	for _, v := range got {
+		countMounts[v.mount]++
+
+		if !strings.HasPrefix(v.device, "/dev/") {
+			t.Errorf("device %s: missing /dev/ prefix", v.device)
+		}
+
+		if !strings.HasPrefix(v.mount, "/") {
+			t.Errorf("mount %s: missing '/' prefix", v.mount)
+		}
+
+		if v.fstype == "" || v.fstype == "-" || strings.Contains(v.fstype, ":") {
+			t.Errorf("fstype %s is missing or malformed", v.fstype)
+		}
+	}
+
+	if countMounts["/"] == 0 {
+		t.Errorf("missing root mount in file")
+	}
+
+	for mount, count := range countMounts {
+		if count > 1 {
+			t.Errorf("%s: has %d entries, should only have 1", mount, count)
+		}
+	}
 }
