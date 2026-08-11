@@ -2,9 +2,11 @@ package disk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"machine-observability/internal/collector"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -53,7 +55,11 @@ func (s *Sampler) Sample(ctx context.Context) ([]collector.Event, error) {
 	for _, mnt := range parsedMountInfo {
 		var st unix.Statfs_t
 		if err := unix.Statfs(mnt.mount, &st); err != nil {
-			return nil, err
+			// skip if a device was unmounted and continue
+			if errors.Is(err, unix.ENOENT) {
+				continue
+			}
+			return nil, fmt.Errorf("statfs %s: %w", mnt.mount, err)
 		}
 
 		if st.Blocks < st.Bfree {
@@ -79,15 +85,30 @@ func (s *Sampler) Sample(ctx context.Context) ([]collector.Event, error) {
 }
 
 func fetchDevices() (map[string]bool, error) {
+	// pseudo-devices excluded from disk_io collection; zram deliberately kept (its I/O is our swap-pressure signal)
+	skipDevicePrefixes := []string{"loop", "ram", "sr", "fs"}
 	devices := make(map[string]bool)
 
 	dir, err := os.ReadDir("/sys/block")
 	if err != nil {
 		return nil, fmt.Errorf("encountered an error listing devices: %w", err)
 	}
-
 	for _, dirEntry := range dir {
+		name := dirEntry.Name()
+		if hasAnyPrefix(name, skipDevicePrefixes) {
+			continue
+		}
+
 		devices[dirEntry.Name()] = true
 	}
 	return devices, nil
+}
+
+func hasAnyPrefix(input string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(input, prefix) {
+			return true
+		}
+	}
+	return false
 }
