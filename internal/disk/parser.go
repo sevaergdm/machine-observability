@@ -77,3 +77,57 @@ func parseDiskStats(r io.Reader, bootId string, ts time.Time, devices map[string
 	}
 	return entries, nil
 }
+
+type mountEntry struct {
+	mount  string
+	fstype string
+	device string
+}
+
+func parseMountInfo(r io.Reader) ([]mountEntry, error) {
+	var entries []mountEntry
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+
+		if len(fields) < 5 {
+			return nil, fmt.Errorf("expected at least 5 fields, but got %d", len(fields))
+		}
+
+		mount := fields[4]
+		var separatorIndex int
+		for i, field := range fields {
+			if field == "-" {
+				separatorIndex = i
+				break
+			}
+		}
+
+		if separatorIndex == 0 {
+			return nil, fmt.Errorf("malformed file, no '-' separator found")
+		}
+
+		fstype := fields[separatorIndex+1]
+		device := fields[separatorIndex+2]
+
+		if !strings.HasPrefix(device, "/dev/") {
+			continue
+		}
+
+		entries = append(entries, mountEntry{mount: mount, fstype: fstype, device: device})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("encountered an error reading /proc/self/mountinfo: %w", err)
+	}
+
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("no lines found in mountinfo")
+	}
+	return entries, nil
+}

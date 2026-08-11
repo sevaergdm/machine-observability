@@ -20,6 +20,22 @@ type IOEntry struct {
 	IoMsWeighted    int64  `parquet:"io_ms_weighted" json:"io_ms_weighted" doc:"request-milliseconds: each ms adds the count of I/Os then in flight (integral of queue depth over time); cumulative; Δ/Δt = avg queue depth, Δ/Δops = avg request latency including queueing"`
 }
 
-func (e IOEntry) Source() string { return "disk_io" }
-
+func (e IOEntry) Source() string       { return "disk_io" }
 func (e IOEntry) Timestamp() time.Time { return e.Ts }
+
+type FSEntry struct {
+	BootId string    `parquet:"boot_id" json:"boot_id" doc:"boot UUID taken from /proc/sys/kernel/random/boot_id (cross-source contract column)"`
+	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/stat was polled (cross-source contract column)"`
+
+	Mount  string `parquet:"mount" json:"mount" doc:"where the file system is mounted, e.g. '/', '/home', etc."`
+	FsType string `parquet:"fs_type" json:"fs_type" doc:"the kind of file system: 'btrfs', 'ext4', 'vfat'"`
+	Device string `parquet:"device" json:"device" doc:"which device backs the file system, e.g. '/dev/nvme0n1p2'"`
+
+	SizeBytes  int64 `parquet:"size_bytes" json:"size_bytes" doc:"total capacity; gauge"`
+	UsedBytes  int64 `parquet:"used_bytes" json:"used_bytes" doc:"consumed capacity; gauge"`
+	FilesTotal int64 `parquet:"files_total" json:"files_total" doc:"inode capacity; gauge"`
+	FilesUsed  int64 `parquet:"files_used" json:"files_used" doc:"consumed inode capacity; gauge"`
+}
+
+func (e FSEntry) Source() string       { return "disk_fs" }
+func (e FSEntry) Timestamp() time.Time { return e.Ts }

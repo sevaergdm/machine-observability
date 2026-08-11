@@ -184,5 +184,115 @@ func TestParseDiskStatsRealFile(t *testing.T) {
 			t.Errorf("device %s: %d entries, want exactly 1", want, countDevices[want])
 		}
 	}
+}
 
+func TestParseMountInfo(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   io.Reader
+		want    []mountEntry
+		wantErr bool
+	}{
+		{
+			name: "Simple entry",
+			input: strings.NewReader(`
+31 2 0:28 /@ / rw,relatime shared:1 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=256,subvol=/@
+52 31 0:28 /@home /home rw,relatime shared:111 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=257,subvol=/@home
+54 31 0:28 /@pkg /var/cache/pacman/pkg rw,relatime shared:115 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=259,subvol=/@pkg
+57 31 0:28 /@log /var/log rw,relatime shared:119 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=258,subvol=/@log
+64 31 259:1 / /boot rw,relatime shared:123 - vfat /dev/nvme0n1p1 rw,fmask=0077,dmask=0077,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro
+			`),
+			want: []mountEntry{
+				{
+					mount:  "/",
+					fstype: "btrfs",
+					device: "/dev/nvme0n1p2",
+				},
+				{
+					mount:  "/home",
+					fstype: "btrfs",
+					device: "/dev/nvme0n1p2",
+				},
+				{
+					mount:  "/var/cache/pacman/pkg",
+					fstype: "btrfs",
+					device: "/dev/nvme0n1p2",
+				},
+				{
+					mount:  "/var/log",
+					fstype: "btrfs",
+					device: "/dev/nvme0n1p2",
+				},
+				{
+					mount:  "/boot",
+					fstype: "vfat",
+					device: "/dev/nvme0n1p1",
+				},
+			},
+		},
+		{
+			name: "incomplete entry",
+			input: strings.NewReader(`
+31 2 0:28 /@ 
+52 31 0:28 /@home 
+54 31 0:28 /@pkg /var/cache/pacman/pkg rw,relatime shared:115 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=259,subvol=/@pkg
+57 31 0:28 /@log /var/log rw,relatime shared:119 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=258,subvol=/@log
+64 31 259:1 / /boot rw,relatime shared:123 - vfat /dev/nvme0n1p1 rw,fmask=0077,dmask=0077,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro
+			`),
+			wantErr: true,
+		},
+		{
+			name: "missing separator",
+			input: strings.NewReader(`
+31 2 0:28 /@ / rw,relatime shared:1  btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=256,subvol=/@
+52 31 0:28 /@home /home rw,relatime shared:111 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=257,subvol=/@home
+54 31 0:28 /@pkg /var/cache/pacman/pkg rw,relatime shared:115 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=259,subvol=/@pkg
+57 31 0:28 /@log /var/log rw,relatime shared:119 - btrfs /dev/nvme0n1p2 rw,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=258,subvol=/@log
+64 31 259:1 / /boot rw,relatime shared:123 - vfat /dev/nvme0n1p1 rw,fmask=0077,dmask=0077,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro
+			`),
+			wantErr: true,
+		},
+		{
+			name:    "empty file",
+			input:   strings.NewReader(""),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseMountInfo(tt.input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expected an error, got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(mountEntry{})); diff != "" {
+				t.Errorf("Parse mismatch: %v", diff)
+			}
+		})
+	}
+}
+
+func TestParseMountInfoRealFile(t *testing.T) {
+	f, err := os.Open("testdata/mountinfo")
+	if err != nil {
+		t.Fatalf("unexpected error opening test file: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	got, err := parseMountInfo(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(got) != 5 {
+		t.Errorf("expected 5 entries, but got %d", len(got))
+	}
 }
