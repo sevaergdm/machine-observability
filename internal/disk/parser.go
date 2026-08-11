@@ -18,18 +18,22 @@ func parseDiskStats(r io.Reader, bootId string, ts time.Time, devices map[string
 		line := scanner.Text()
 		fields := strings.Fields(line)
 		if len(fields) == 0 {
-			return nil, fmt.Errorf("empty file returned")
-		}
-		deviceName := fields[2]
-		values := fields[3:]
-
-		if len(values) < 11 {
-			return nil, fmt.Errorf("expected at least 11 fields, but got %d", len(values))
-		}
-
-		if _, ok := devices[deviceName]; !ok {
 			continue
 		}
+
+		if len(fields) < 3 {
+			return nil, fmt.Errorf("expected at least 3 fields, but got %d", len(fields))
+		}
+
+		deviceName := fields[2]
+		if !devices[deviceName] {
+			continue
+		}
+
+		if len(fields) < 14 {
+			return nil, fmt.Errorf("device %s: expected at least 11 stat values, but got %d", deviceName, len(fields)-3)
+		}
+		values := fields[3:]
 
 		// capture the first parse error; later calls still run but don't mask
 		var parseErr error

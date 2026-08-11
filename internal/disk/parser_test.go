@@ -2,7 +2,7 @@ package disk
 
 import (
 	"io"
-	//"os"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -39,6 +39,7 @@ func TestParseDiskStats(t *testing.T) {
 				{
 					BootId:          "boot-123",
 					Ts:              ts,
+					DeviceName:      "nvme0n1",
 					ReadsCompleted:  int64(109112),
 					ReadsMerged:     int64(13817),
 					ReadSectors:     int64(8228361),
@@ -50,6 +51,22 @@ func TestParseDiskStats(t *testing.T) {
 					IoInProgress:    int64(0),
 					IoMs:            int64(528866),
 					IoMsWeighted:    int64(5738463),
+				},
+				{
+					BootId:          "boot-123",
+					Ts:              ts,
+					DeviceName:      "zram0",
+					ReadsCompleted:  int64(353),
+					ReadsMerged:     int64(0),
+					ReadSectors:     int64(6072),
+					ReadMs:          int64(7),
+					WritesCompleted: int64(3101),
+					WritesMerged:    int64(0),
+					WriteSectors:    int64(37072),
+					WriteMs:         int64(113),
+					IoInProgress:    int64(0),
+					IoMs:            int64(120),
+					IoMsWeighted:    int64(120),
 				},
 			},
 		},
@@ -102,9 +119,8 @@ func TestParseDiskStats(t *testing.T) {
 	}
 }
 
-/*
-func TestParseStatRealFile(t *testing.T) {
-	f, err := os.Open("testdata/stat")
+func TestParseDiskStatsRealFile(t *testing.T) {
+	f, err := os.Open("testdata/diskstats")
 	if err != nil {
 		t.Fatalf("unexpected error opening test file: %v", err)
 	}
@@ -115,59 +131,56 @@ func TestParseStatRealFile(t *testing.T) {
 		t.Fatalf("unexpected error parsing timestamp '%s': %v", tsString, err)
 	}
 
-	got, err := parseStat(f, bootId, ts)
+	got, err := parseDiskStats(f, bootId, ts, devices)
 	if err != nil {
 		t.Fatalf("unexpected error parsing %s: %v", f.Name(), err)
 	}
 
-	if len(got) != 17 {
-		t.Fatalf("expected 17 entries, but got %d", len(got))
+	if len(got) != 2 {
+		t.Fatalf("expected 2 entries, but got %d", len(got))
 	}
 
-	var sum, all Entry
-	for _, entry := range got {
-		if entry.Cpu == "all" {
-			all = entry
-			continue
+	countDevices := make(map[string]int)
+	for _, v := range got {
+		countDevices[v.DeviceName]++
+
+		if v.IoMsWeighted < v.IoMs {
+			t.Errorf("%s: IoMsWeighted (%d) must match or exceed IoMs (%d)", v.DeviceName, v.IoMsWeighted, v.IoMs)
 		}
-		sum.User += entry.User
-		sum.Nice += entry.Nice
-		sum.System += entry.System
-		sum.Idle += entry.Idle
-		sum.Iowait += entry.Iowait
-		sum.Irq += entry.Irq
-		sum.SoftIrq += entry.SoftIrq
-		sum.Steal += entry.Steal
+
+		if v.IoInProgress > 10000 {
+			t.Errorf("%s: expect IoInProgress to be a low value, but got %d", v.DeviceName, v.IoInProgress)
+		}
+
+		fields := []struct {
+			name  string
+			value int64
+		}{
+			{"reads_completed", v.ReadsCompleted},
+			{"reads_merged", v.ReadsMerged},
+			{"read_sectors", v.ReadSectors},
+			{"read_ms", v.ReadMs},
+			{"writes_completed", v.WritesCompleted},
+			{"writes_merged", v.WritesMerged},
+			{"write_sectors", v.WriteSectors},
+			{"write_ms", v.WriteMs},
+			{"io_in_progress", v.IoInProgress},
+			{"io_ms", v.IoMs},
+			{"io_ms_weighted", v.IoMsWeighted},
+		}
+
+		for _, field := range fields {
+			if field.value < 0 {
+				t.Errorf("%s: %s = %d, want >= 0", v.DeviceName, field.name, field.value)
+			}
+
+		}
 	}
 
-	if all.Cpu != "all" {
-		t.Fatalf("no aggregate 'all' row in parsed output")
-	}
-
-	// Because the total sum on the cpu line is calculated prior to truncation to "jiffies" by the kernel the value can differ by up to 1 jiffy
-	// To accommodate this we account for a max diff being the total number of CPUs on the machine and expect the gap to never be negative due to the floor division
-	numCpus := len(got) - 1
-	checks := []struct {
-		name string
-		all  int64
-		sum  int64
-	}{
-		{"user", all.User, sum.User},
-		{"nice", all.Nice, sum.Nice},
-		{"system", all.System, sum.System},
-		{"idle", all.Idle, sum.Idle},
-		{"iowait", all.Iowait, sum.Iowait},
-		{"irq", all.Irq, sum.Irq},
-		{"softirq", all.SoftIrq, sum.SoftIrq},
-		{"steal", all.Steal, sum.Steal},
-	}
-
-	for _, check := range checks {
-		gap := check.all - check.sum
-		if gap < 0 || gap > int64(numCpus) {
-			t.Errorf("%s: aggregate-sum = %d, want within [0, %d]", check.name, gap, numCpus)
+	for device, count := range countDevices {
+		if count > 1 {
+			t.Errorf("device: %s has %d entries, should only have 1", device, count)
 		}
 	}
 
 }
-*/
