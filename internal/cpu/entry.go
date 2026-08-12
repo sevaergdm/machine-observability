@@ -17,6 +17,5 @@ type Entry struct {
 	Steal   int64  `parquet:"steal" json:"steal" doc:"jiffies (1/100s) a hypervisor stole time; cumulative since boot; /proc/stat value 8"`
 }
 
-func (e Entry) Source() string { return "cpu" }
-
+func (e Entry) Source() string       { return "cpu" }
 func (e Entry) Timestamp() time.Time { return e.Ts }

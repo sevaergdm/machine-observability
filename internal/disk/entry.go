@@ -4,7 +4,7 @@ import "time"
 
 type IOEntry struct {
 	BootId string    `parquet:"boot_id" json:"boot_id" doc:"boot UUID taken from /proc/sys/kernel/random/boot_id (cross-source contract column)"`
-	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/stat was polled (cross-source contract column)"`
+	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/diskstats was polled (cross-source contract column)"`
 
 	DeviceName      string `parquet:"device_name" json:"device_name" doc:"device name from /proc/diskstats. Matched against whole-device set in /sys/block. Partitions excluded"`
 	ReadsCompleted  int64  `parquet:"reads_completed" json:"reads_completed" doc:"operations; cumulative counter; number of reads completed successfully"`
@@ -25,7 +25,7 @@ func (e IOEntry) Timestamp() time.Time { return e.Ts }
 
 type FSEntry struct {
 	BootId string    `parquet:"boot_id" json:"boot_id" doc:"boot UUID taken from /proc/sys/kernel/random/boot_id (cross-source contract column)"`
-	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/stat was polled (cross-source contract column)"`
+	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/self/mountinfo was polled (cross-source contract column)"`
 
 	Mount  string `parquet:"mount" json:"mount" doc:"where the file system is mounted, e.g. '/', '/home', etc."`
 	FsType string `parquet:"fs_type" json:"fs_type" doc:"the kind of file system: 'btrfs', 'ext4', 'vfat'"`

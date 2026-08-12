@@ -17,6 +17,5 @@ type Entry struct {
 	Slab      int64 `parquet:"slab" json:"slab" doc:"bytes; gauge; kernel object caches (inodes, dentries, ...); Slab"`
 }
 
-func (e Entry) Source() string { return "memory" }
-
+func (e Entry) Source() string       { return "memory" }
 func (e Entry) Timestamp() time.Time { return e.Ts }

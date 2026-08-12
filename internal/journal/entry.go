@@ -29,8 +29,7 @@ type Entry struct {
 	Fields string `parquet:"fields" json:"fields" doc:"all remaining journald fields as a JSON object string; promoted keys excluded; '{}' when none; query via fields->>'_KEY'"`
 }
 
-func (e Entry) Source() string { return "journal" }
-
+func (e Entry) Source() string       { return "journal" }
 func (e Entry) Timestamp() time.Time { return e.Ts }
 
 func (e Entry) WriteCursor(stateDir string) error {
