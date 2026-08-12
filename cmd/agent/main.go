@@ -12,6 +12,7 @@ import (
 	"machine-observability/internal/disk"
 	"machine-observability/internal/journal"
 	"machine-observability/internal/memory"
+	"machine-observability/internal/network"
 	"machine-observability/internal/sink"
 	"os"
 	"os/signal"
@@ -61,6 +62,12 @@ var registry = map[string]registration{
 		kind: config.Polling,
 		build: func(d buildDeps) collector.Collector {
 			return collector.NewPolling(&disk.Sampler{BootId: d.bootId}, d.interval, d.logger)
+		},
+	},
+	"network": {
+		kind: config.Polling,
+		build: func(d buildDeps) collector.Collector {
+			return collector.NewPolling(&network.Sampler{BootId: d.bootId}, d.interval, d.logger)
 		},
 	},
 }
@@ -172,6 +179,7 @@ func main() {
 	memoryFlush := sink.NewParquetFlush[memory.Entry](cfg.DataDir, "memory")
 	diskIOFlush := sink.NewParquetFlush[disk.IOEntry](cfg.DataDir, "disk_io")
 	diskFSFlush := sink.NewParquetFlush[disk.FSEntry](cfg.DataDir, "disk_fs")
+	networkFlush := sink.NewParquetFlush[network.Entry](cfg.DataDir, "network")
 
 	if err := manager.Register("journal", journalFlushFn, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: sink.DefaultMaxAge}); err != nil {
 		logger.Error("unable to register", "error", err, "source", "journal")
@@ -191,6 +199,10 @@ func main() {
 	}
 	if err := manager.Register("disk_fs", diskFSFlush, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: 5 * time.Minute}); err != nil {
 		logger.Error("unable to register", "error", err, "source", "disk_fs")
+		os.Exit(1)
+	}
+	if err := manager.Register("network", networkFlush, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: 5 * time.Minute}); err != nil {
+		logger.Error("unable to register", "error", err, "source", "network")
 		os.Exit(1)
 	}
 	manager.Run()
