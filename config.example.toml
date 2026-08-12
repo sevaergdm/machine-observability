@@ -15,3 +15,7 @@ interval = "10s"
 [collectors.disk]
 enabled = true
 interval = "60s"
+
+[collectors.network]
+enabled = true
+interval = "60s"

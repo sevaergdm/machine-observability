@@ -16,13 +16,9 @@ func parseNetDev(r io.Reader, bootId string, ts time.Time) ([]Entry, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if !strings.Contains(line, ":") {
-			continue
-		}
-
 		iface, values, ok := strings.Cut(line, ":")
 		if !ok {
-			return nil, fmt.Errorf("malformed entry in /proc/net/dev, unable to parse")
+			continue
 		}
 
 		iface = strings.TrimSpace(iface)
@@ -62,7 +58,11 @@ func parseNetDev(r io.Reader, bootId string, ts time.Time) ([]Entry, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("encountered an error reading /proc/network/dev: %w", err)
+		return nil, fmt.Errorf("encountered an error reading /proc/net/dev: %w", err)
+	}
+
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("no lines found in /proc/net/dev")
 	}
 
 	return entries, nil
