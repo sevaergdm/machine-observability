@@ -19,3 +19,7 @@ interval = "60s"
 [collectors.network]
 enabled = true
 interval = "60s"
+
+[collectors.gpu]
+enabled = true
+interval = "60s"

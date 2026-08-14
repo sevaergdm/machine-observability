@@ -10,6 +10,7 @@ import (
 	"machine-observability/internal/config"
 	"machine-observability/internal/cpu"
 	"machine-observability/internal/disk"
+	"machine-observability/internal/gpu"
 	"machine-observability/internal/journal"
 	"machine-observability/internal/memory"
 	"machine-observability/internal/network"
@@ -33,41 +34,51 @@ type buildDeps struct {
 
 type registration struct {
 	kind  config.Kind
-	build func(d buildDeps) collector.Collector
+	build func(d buildDeps) (collector.Collector, error)
 }
 
 var registry = map[string]registration{
 	"journal": {
 		kind: config.Streaming,
-		build: func(d buildDeps) collector.Collector {
+		build: func(d buildDeps) (collector.Collector, error) {
 			return &journal.Collector{
 				Logger:     d.logger,
 				CursorPath: filepath.Join(d.stateDir, "journal.cursor"),
-			}
+			}, nil
 		},
 	},
 	"cpu": {
 		kind: config.Polling,
-		build: func(d buildDeps) collector.Collector {
-			return collector.NewPolling(&cpu.Sampler{BootId: d.bootId}, d.interval, d.logger)
+		build: func(d buildDeps) (collector.Collector, error) {
+			return collector.NewPolling(&cpu.Sampler{BootId: d.bootId}, d.interval, d.logger), nil
 		},
 	},
 	"memory": {
 		kind: config.Polling,
-		build: func(d buildDeps) collector.Collector {
-			return collector.NewPolling(&memory.Sampler{BootId: d.bootId}, d.interval, d.logger)
+		build: func(d buildDeps) (collector.Collector, error) {
+			return collector.NewPolling(&memory.Sampler{BootId: d.bootId}, d.interval, d.logger), nil
 		},
 	},
 	"disk": {
 		kind: config.Polling,
-		build: func(d buildDeps) collector.Collector {
-			return collector.NewPolling(&disk.Sampler{BootId: d.bootId}, d.interval, d.logger)
+		build: func(d buildDeps) (collector.Collector, error) {
+			return collector.NewPolling(&disk.Sampler{BootId: d.bootId}, d.interval, d.logger), nil
 		},
 	},
 	"network": {
 		kind: config.Polling,
-		build: func(d buildDeps) collector.Collector {
-			return collector.NewPolling(&network.Sampler{BootId: d.bootId}, d.interval, d.logger)
+		build: func(d buildDeps) (collector.Collector, error) {
+			return collector.NewPolling(&network.Sampler{BootId: d.bootId}, d.interval, d.logger), nil
+		},
+	},
+	"gpu": {
+		kind: config.Polling,
+		build: func(d buildDeps) (collector.Collector, error) {
+			s, err := gpu.NewSampler("/sys/class/drm", d.bootId, d.logger)
+			if err != nil {
+				return nil, err
+			}
+			return collector.NewPolling(s, d.interval, d.logger), nil
 		},
 	},
 }
@@ -128,12 +139,18 @@ func main() {
 		if !collectorConfig.Enabled {
 			continue
 		}
-		active = append(active, registry[name].build(buildDeps{
+
+		c, err := registry[name].build(buildDeps{
 			logger:   logger.With("collector", name),
 			stateDir: cfg.StateDir,
 			interval: collectorConfig.Interval.Duration,
 			bootId:   bootId,
-		}))
+		})
+		if err != nil {
+			logger.Warn("collector unavailable, skipping", "collector", name, "error", err)
+			continue
+		}
+		active = append(active, c)
 		names = append(names, name)
 	}
 
@@ -180,6 +197,7 @@ func main() {
 	diskIOFlush := sink.NewParquetFlush[disk.IOEntry](cfg.DataDir, "disk_io")
 	diskFSFlush := sink.NewParquetFlush[disk.FSEntry](cfg.DataDir, "disk_fs")
 	networkFlush := sink.NewParquetFlush[network.Entry](cfg.DataDir, "network")
+	gpuFlush := sink.NewParquetFlush[gpu.Entry](cfg.DataDir, "gpu")
 
 	if err := manager.Register("journal", journalFlushFn, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: sink.DefaultMaxAge}); err != nil {
 		logger.Error("unable to register", "error", err, "source", "journal")
@@ -203,6 +221,10 @@ func main() {
 	}
 	if err := manager.Register("network", networkFlush, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: 5 * time.Minute}); err != nil {
 		logger.Error("unable to register", "error", err, "source", "network")
+		os.Exit(1)
+	}
+	if err := manager.Register("gpu", gpuFlush, sink.Tuning{MaxRows: sink.DefaultMaxRows, MaxAge: 5 * time.Minute}); err != nil {
+		logger.Error("unable to register", "error", err, "source", "gpu")
 		os.Exit(1)
 	}
 	manager.Run()
