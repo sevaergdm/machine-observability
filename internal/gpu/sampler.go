@@ -25,7 +25,13 @@ func NewSampler(root, bootId string, logger *slog.Logger) (*Sampler, error) {
 		logger = slog.New(slog.DiscardHandler)
 	}
 
-	return &Sampler{BootId: bootId, Root: root, Logger: logger}, nil
+	s := &Sampler{BootId: bootId, Root: root, Logger: logger}
+
+	if _, err := s.detectCards(); err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
 func (s *Sampler) Sample(ctx context.Context) ([]collector.Event, error) {
@@ -34,12 +40,6 @@ func (s *Sampler) Sample(ctx context.Context) ([]collector.Event, error) {
 
 	cardDirs, err := s.detectCards()
 	if err != nil {
-		s.Logger.Error("unable to detect cards", "error", err)
-		return nil, err
-	}
-
-	if len(cardDirs) == 0 {
-		s.Logger.Error("no amdgpu cards found", "root", s.Root)
 		return nil, err
 	}
 
@@ -122,7 +122,7 @@ func (s *Sampler) detectCards() ([]string, error) {
 	}
 
 	if len(cards) == 0 {
-		return nil, fmt.Errorf("no cards amdgpu cards detected")
+		return nil, fmt.Errorf("no amdgpu cards detected")
 	}
 	return cards, nil
 }

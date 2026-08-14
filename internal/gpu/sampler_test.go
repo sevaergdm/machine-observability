@@ -86,13 +86,8 @@ func TestSample(t *testing.T) {
 }
 
 func TestNoCards(t *testing.T) {
-	s, err := NewSampler(t.TempDir(), bootId, slog.New(slog.DiscardHandler))
-	if err != nil {
-		t.Fatalf("unexpected error creating sampler: %v", err)
-	}
-
-	if _, err := s.detectCards(); err == nil {
-		t.Errorf("expected an error creating sampler, but got none")
+	if _, err := NewSampler(t.TempDir(), bootId, slog.New(slog.DiscardHandler)); err != nil {
+		t.Errorf("expected an error detecting cards, but got none")
 	}
 }
 
