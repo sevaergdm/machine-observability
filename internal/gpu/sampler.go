@@ -13,31 +13,40 @@ import (
 )
 
 type Sampler struct {
-	BootId   string
-	Root     string
-	Logger   *slog.Logger
-	CardDirs []string
+	BootId string
+	Root   string
+	Logger *slog.Logger
 }
 
+func (s *Sampler) Name() string { return "gpu" }
+
 func NewSampler(root, bootId string, logger *slog.Logger) (*Sampler, error) {
-	s := &Sampler{BootId: bootId, Root: root, Logger: logger}
-	cards, err := s.detectCards()
-	if err != nil {
-		return nil, err
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
 	}
-	if len(cards) == 0 {
-		return nil, fmt.Errorf("no amdgpu cards under %s", root)
-	}
-	s.CardDirs = cards
-	return s, nil
+
+	return &Sampler{BootId: bootId, Root: root, Logger: logger}, nil
 }
 
 func (s *Sampler) Sample(ctx context.Context) ([]collector.Event, error) {
 	var events []collector.Event
-	for _, cardDir := range s.CardDirs {
-		e, err := s.sampleCards(cardDir, time.Now().UTC())
+	ts := time.Now().UTC()
+
+	cardDirs, err := s.detectCards()
+	if err != nil {
+		s.Logger.Error("unable to detect cards", "error", err)
+		return nil, err
+	}
+
+	if len(cardDirs) == 0 {
+		s.Logger.Error("no amdgpu cards found", "root", s.Root)
+		return nil, err
+	}
+
+	for _, cardDir := range cardDirs {
+		e, err := s.sampleCard(cardDir, ts)
 		if err != nil {
-			s.Logger.Error("unable to sample card", "error", err, "card", cardDir)
+			s.Logger.Debug("unable to sample card", "error", err, "card", cardDir)
 			continue
 		}
 		events = append(events, e)
@@ -45,8 +54,8 @@ func (s *Sampler) Sample(ctx context.Context) ([]collector.Event, error) {
 	return events, nil
 }
 
-func (s *Sampler) sampleCards(cardDir string, ts time.Time) (Entry, error) {
-	cardName := strings.TrimPrefix(cardDir, s.Root+"/")
+func (s *Sampler) sampleCard(cardDir string, ts time.Time) (Entry, error) {
+	cardName := filepath.Base(cardDir)
 	dev := filepath.Join(cardDir, "device")
 
 	busy, err := readInt(filepath.Join(dev, "gpu_busy_percent"))
@@ -109,6 +118,11 @@ func (s *Sampler) detectCards() ([]string, error) {
 			continue
 		}
 		cards = append(cards, filepath.Join(s.Root, entry.Name()))
+
+	}
+
+	if len(cards) == 0 {
+		return nil, fmt.Errorf("no cards amdgpu cards detected")
 	}
 	return cards, nil
 }

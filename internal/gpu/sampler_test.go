@@ -27,11 +27,16 @@ func TestSample(t *testing.T) {
 
 	wantCardDirs := []string{"testdata/drm/card1", "testdata/drm/card2"}
 
-	if match := reflect.DeepEqual(s.CardDirs, wantCardDirs); !match {
-		t.Errorf("expected match. wanted '%+v', but got '%+v'", wantCardDirs, s.CardDirs)
+	gotCardDirs, err := s.detectCards()
+	if err != nil {
+		t.Fatalf("unexpected error detecting cards: %v", err)
 	}
 
-	gotCard1Sample, err := s.sampleCards(s.CardDirs[0], ts)
+	if match := reflect.DeepEqual(gotCardDirs, wantCardDirs); !match {
+		t.Errorf("expected match. wanted '%+v', but got '%+v'", wantCardDirs, gotCardDirs)
+	}
+
+	gotCard1Sample, err := s.sampleCard(gotCardDirs[0], ts)
 	if err != nil {
 		t.Fatalf("unexpected error sampling card1: %v", err)
 	}
@@ -57,7 +62,7 @@ func TestSample(t *testing.T) {
 		t.Errorf("Parse mismatch card1: %v", diff)
 	}
 
-	gotCard2Sample, err := s.sampleCards(s.CardDirs[1], ts)
+	gotCard2Sample, err := s.sampleCard(gotCardDirs[1], ts)
 	if err != nil {
 		t.Fatalf("unexpected error sampling card2: %v", err)
 	}
@@ -81,8 +86,12 @@ func TestSample(t *testing.T) {
 }
 
 func TestNoCards(t *testing.T) {
-	_, err := NewSampler(t.TempDir(), bootId, slog.New(slog.DiscardHandler))
-	if err == nil {
+	s, err := NewSampler(t.TempDir(), bootId, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatalf("unexpected error creating sampler: %v", err)
+	}
+
+	if _, err := s.detectCards(); err == nil {
 		t.Errorf("expected an error creating sampler, but got none")
 	}
 }
@@ -93,13 +102,18 @@ func TestFullSample(t *testing.T) {
 		t.Fatalf("unexpected error creating sampler: %v", err)
 	}
 
+	gotCardDirs, err := s.detectCards()
+	if err != nil {
+		t.Fatalf("unexpected error fetching card directories: %v", err)
+	}
+
 	events, err := s.Sample(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error sampling: %v", err)
 	}
 
 	countCards := make(map[string]int)
-	for _, cardDir := range s.CardDirs {
+	for _, cardDir := range gotCardDirs {
 		countCards[cardDir]++
 	}
 
