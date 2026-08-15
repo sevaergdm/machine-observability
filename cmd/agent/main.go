@@ -147,6 +147,8 @@ func main() {
 			bootId:   bootId,
 		})
 		if err != nil {
+			// Build errors mean a missing precondition (e.g. no GPU hardware) which is degraded, not fatal
+			// Revisit if a fatal-class build error ever exists
 			logger.Warn("collector unavailable, skipping", "collector", name, "error", err)
 			continue
 		}

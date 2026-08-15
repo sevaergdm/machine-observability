@@ -22,4 +22,4 @@ interval = "60s"
 
 [collectors.gpu]
 enabled = true
-interval = "60s"
+interval = "15s"
