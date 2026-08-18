@@ -1,0 +1,40 @@
+# This is an example PKGBUILD file. Use this as a start to creating your own,
+# and remove these comments. For more information, see 'man PKGBUILD'.
+# NOTE: Please fill out the license field for your package! If it is unknown,
+# then please put 'unknown'.
+
+# Maintainer: Michael Greaves <mdgmash@gmail.com>
+pkgname=machine-observability
+pkgver=0.4.0
+pkgrel=1
+pkgdesc="Observability agent for linux (journald, cpu, memory, disk, netowrk, gpu  -> parquet)"
+arch=('x86_64')
+url="https://github.com/sevaergdm/machine-observability"
+license=('MIT')
+depends=('systemd')
+makedepends=('go')
+backup=('etc/machine-observability/config.toml')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/sevaergdm/machine-observability/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('71f83b30a9cf468d3050c29d2844bed8770cdc70f8d4dda97fcd244a33dfcb6b')
+
+build() {
+	cd "$pkgname-$pkgver"
+  export CGO_CPPFLAGS="${CPPFLAGS}" CGO_CFLAGS="${CFLAGS}" CGO_CXXFLAGS="${CXXFLAGS}" CGO_LDFLAGS="${LDFLAGS}"
+  export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
+  go build -o machine-observability ./cmd/agent
+}
+
+check() {
+	cd "$pkgname-$pkgver"
+  go test ./...
+}
+
+package() {
+	cd "$pkgname-$pkgver"
+  install -Dm755 machine-observability "$pkgdir/usr/bin/machine-observability"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 config.example.toml "$pkgdir/etc/machine-observability/config.toml"
+  # 4.3 adds, when the files exist:
+  # install -Dm644 machine-observability.service "$pkgdir/usr/lib/systemd/system/machine-observability.service"
+  # install -Dm644 machine-observability.sysusers "$pkgdir/usr/lib/sysusers.d/machine-observability.conf"
+}

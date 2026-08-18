@@ -3,3 +3,5 @@ config.toml
 bin/*
 rss.log
 agent.log
+packaging/*
+!packaging/PKGBUILD
