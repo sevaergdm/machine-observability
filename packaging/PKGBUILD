@@ -5,7 +5,7 @@
 
 # Maintainer: Michael Greaves <mdgmash@gmail.com>
 pkgname=machine-observability
-pkgver=0.4.2
+pkgver=0.4.3
 pkgrel=1
 pkgdesc="Observability agent for linux (journald, cpu, memory, disk, netowrk, gpu  -> parquet)"
 arch=('x86_64')
@@ -15,7 +15,7 @@ depends=('systemd')
 makedepends=('go')
 backup=('etc/machine-observability/config.toml')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/sevaergdm/machine-observability/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('0dff3eab2a05b9b448d839492717fe9fc72c73bccdc44bc6cecb70f7fdf8b7ae')
+sha256sums=('8edc3fad0e8fd10b85f5db9c33c859df2677f40e0d523a582b39cae9085bd48c')
 
 build() {
 	cd "$pkgname-$pkgver"
