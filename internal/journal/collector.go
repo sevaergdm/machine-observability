@@ -61,40 +61,16 @@ func (c *Collector) consumeStream(ctx context.Context, r io.Reader, events chan<
 }
 
 func (c *Collector) runOnce(ctx context.Context, events chan<- collector.Event) error {
-	args := []string{"-f", "-o", "json", "--no-pager"}
-
 	if c.lastCursor != "" {
-		args = append(args, "--after-cursor", c.lastCursor)
+		c.Logger.Info("catching up from cursor", "cursor", c.lastCursor)
+		if err := c.runJournalCtl(ctx, events, false); err != nil {
+			return err
+		}
+		c.Logger.Info("catch-up complete, following", "cursor", c.lastCursor)
+	} else {
+		c.Logger.Info("no cursor, following from now")
 	}
-	cmd := exec.CommandContext(ctx, "journalctl", args...)
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	decodeErr := c.consumeStream(ctx, stdout, events)
-
-	waitErr := cmd.Wait()
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	if decodeErr != nil {
-		return decodeErr
-	}
-
-	if waitErr != nil {
-		return fmt.Errorf("journalctl: %w (%s)", waitErr, strings.TrimSpace(stderr.String()))
-	}
-	return nil
+	return c.runJournalCtl(ctx, events, true)
 }
 
 func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) error {
@@ -149,4 +125,44 @@ func (c *Collector) Run(ctx context.Context, events chan<- collector.Event) erro
 
 		delay = min(delay*2, 30*time.Second)
 	}
+}
+
+func (c *Collector) runJournalCtl(ctx context.Context, events chan<- collector.Event, follow bool) error {
+	args := []string{"-o", "json", "--no-pager"}
+	if follow {
+		args = append(args, "-f")
+	}
+	if c.lastCursor != "" {
+		args = append(args, "--after-cursor", c.lastCursor)
+	}
+
+	cmd := exec.CommandContext(ctx, "journalctl", args...)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	decodeErr := c.consumeStream(ctx, stdout, events)
+
+	waitErr := cmd.Wait()
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	if decodeErr != nil {
+		return decodeErr
+	}
+
+	if waitErr != nil {
+		return fmt.Errorf("journalctl: %w (%s)", waitErr, strings.TrimSpace(stderr.String()))
+	}
+	return nil
 }

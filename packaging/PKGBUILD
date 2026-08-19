@@ -15,7 +15,7 @@ depends=('systemd')
 makedepends=('go')
 backup=('etc/machine-observability/config.toml')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/sevaergdm/machine-observability/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('26dd33f8d19b54180b1969b91123f5f39b1bcff78bb5388d26481326e2862f97')
+sha256sums=('0dff3eab2a05b9b448d839492717fe9fc72c73bccdc44bc6cecb70f7fdf8b7ae')
 
 build() {
 	cd "$pkgname-$pkgver"

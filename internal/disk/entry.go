@@ -27,7 +27,7 @@ type FSEntry struct {
 	BootId string    `parquet:"boot_id" json:"boot_id" doc:"boot UUID taken from /proc/sys/kernel/random/boot_id (cross-source contract column)"`
 	Ts     time.Time `parquet:"ts,timestamp(microsecond)" json:"ts" doc:"timestamp in UTC when /proc/self/mountinfo was polled (cross-source contract column)"`
 
-	Mount  string `parquet:"mount" json:"mount" doc:"where the file system is mounted, e.g. '/', '/home', etc."`
+	Mount  string `parquet:"mount" json:"mount" doc:"reflects the service's mount namespace, not the host's. sandbox bind mounts (/var/tmp. the state dir) appear; /home hiddenby ProtectHome (same pool as / on this machine. Revisit if /home ever gets its own device"`
 	FsType string `parquet:"fs_type" json:"fs_type" doc:"the kind of file system: 'btrfs', 'ext4', 'vfat'"`
 	Device string `parquet:"device" json:"device" doc:"which device backs the file system, e.g. '/dev/nvme0n1p2'"`
 
