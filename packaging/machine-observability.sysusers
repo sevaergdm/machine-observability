@@ -1,0 +1,2 @@
+u machineobs - "machine-observability agent"
+m machineobs systemd-journal

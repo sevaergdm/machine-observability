@@ -5,7 +5,7 @@
 
 # Maintainer: Michael Greaves <mdgmash@gmail.com>
 pkgname=machine-observability
-pkgver=0.4.1
+pkgver=0.4.2
 pkgrel=1
 pkgdesc="Observability agent for linux (journald, cpu, memory, disk, netowrk, gpu  -> parquet)"
 arch=('x86_64')
@@ -34,7 +34,6 @@ package() {
   install -Dm755 machine-observability "$pkgdir/usr/bin/machine-observability"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 config.example.toml "$pkgdir/etc/machine-observability/config.toml"
-  # 4.3 adds, when the files exist:
-  # install -Dm644 machine-observability.service "$pkgdir/usr/lib/systemd/system/machine-observability.service"
-  # install -Dm644 machine-observability.sysusers "$pkgdir/usr/lib/sysusers.d/machine-observability.conf"
+  install -Dm644 packaging/machine-observability.service "$pkgdir/usr/lib/systemd/system/machine-observability.service"
+  install -Dm644 packaging/machine-observability.sysusers "$pkgdir/usr/lib/sysusers.d/machine-observability.conf"
 }

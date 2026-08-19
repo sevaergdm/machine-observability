@@ -1,0 +1,21 @@
+[Unit]
+Description=Machine observability agent
+Documentation=https://github.com/sevaergdm/machine-observability
+
+[Service]
+Type=simple
+User=machineobs
+ExecStart=/usr/bin/machine-observability -config /etc/machine-observability/config.toml
+Restart=on-failure
+RestartSec=5s
+
+StateDirectory=machine-observability
+StateDirectoryMode=0750
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

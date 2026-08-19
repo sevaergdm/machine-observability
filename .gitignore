@@ -5,3 +5,5 @@ rss.log
 agent.log
 packaging/*
 !packaging/PKGBUILD
+!packaging/machine-observability.service
+!packaging/machine-observability.sysusers
